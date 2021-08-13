@@ -38,7 +38,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConfigLoaderTest {
 	@BeforeAll
 	static void beforeAll() throws IOException, InstanceAlreadyExistsException {
-		new ConfigLoader("src/test/test.json");
+		if (ConfigLoader.getInstance() == null)
+			new ConfigLoader("src/test/test.json");
 	}
 
 	@Test

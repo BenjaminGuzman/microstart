@@ -90,7 +90,7 @@ class ServiceTest {
 	void runStderr() throws InterruptedException, InstanceAlreadyExistsException {
 		String serviceName = "Test 2";
 
-		assertNull(Service.forName(serviceName)); // check the service was added to singleton map
+		assertNull(Service.forName(serviceName));
 
 		List<ServiceStatus> expectedStatuses = List.of(
 			ServiceStatus.LOADED,
@@ -140,7 +140,7 @@ class ServiceTest {
 	void runMultipleUp() throws InterruptedException, InstanceAlreadyExistsException {
 		String serviceName = "Test 3";
 
-		assertNull(Service.forName(serviceName)); // check the service was added to singleton map
+		assertNull(Service.forName(serviceName));
 
 		List<ServiceStatus> expectedStatuses = List.of(
 			ServiceStatus.LOADED,

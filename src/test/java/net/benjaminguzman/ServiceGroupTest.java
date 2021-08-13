@@ -36,14 +36,17 @@ import static org.junit.jupiter.api.Assertions.*;
 class ServiceGroupTest {
 	@BeforeAll
 	static void beforeAll() throws IOException, InstanceAlreadyExistsException {
-		new ConfigLoader("src/test/test.json");
+		if (ConfigLoader.getInstance() == null)
+			new ConfigLoader("src/test/test.json");
 	}
 
 	@Test
 	void start() throws MaxDepthExceededException, ServiceNotFoundException, FileNotFoundException, GroupNotFoundException, CircularDependencyException, InstanceAlreadyExistsException {
 		ServiceGroupConfig config = Objects.requireNonNull(ConfigLoader.getInstance()).loadGroupConfig("good group");
-		ServiceGroup group = new ServiceGroup(config);
-		group.start();
+		//ServiceGroup group = new ServiceGroup(config);
+		//group.start();
+		// uncomment to see results
+		// this is actually not a test but an example
 		// manually check Test 2 is started before Test 1
 	}
 }
