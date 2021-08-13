@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -53,11 +53,11 @@ class ServiceTest {
 		// should contain the same elements in the same order as expectedStatuses after termination
 		List<ServiceStatus> statuses = new ArrayList<>(expectedStatuses.size());
 
-		Map<ServiceStatus, Consumer<ServiceStatus>> hooks = new HashMap<>();
+		Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks = new HashMap<>();
 		for (ServiceStatus status : expectedStatuses)
-			hooks.put(status, statuses::add);
+			hooks.put(status, (service, status1) -> statuses.add(status1));
 
-		hooks.put(ServiceStatus.ERROR, s -> fail()); // that status should never be reached
+		hooks.put(ServiceStatus.ERROR, (s, s1) -> fail()); // that status should never be reached
 
 		// create queue to receive status changes
 		BlockingQueue<ServiceStatus> queue = new ArrayBlockingQueue<>(expectedStatuses.size(), true);
@@ -65,10 +65,10 @@ class ServiceTest {
 		Service service = new Service(
 			new ServiceConfig()
 				.setName(serviceName)
-				.setUpPatterns(List.of(Pattern.compile("done", Pattern.CASE_INSENSITIVE)))
+				.setStartedPatterns(List.of(Pattern.compile("done", Pattern.CASE_INSENSITIVE)))
 				.setStartCmd("echo -e \"Starting...\nLoading config\nService is up now\nDone.\""),
 			hooks,
-			(e) -> fail(),
+			(s, e) -> fail(),
 			queue
 		);
 		Thread t = new Thread(service);
@@ -103,11 +103,11 @@ class ServiceTest {
 		// should contain the same elements in the same order as expectedStatuses after termination
 		List<ServiceStatus> statuses = new ArrayList<>(expectedStatuses.size());
 
-		Map<ServiceStatus, Consumer<ServiceStatus>> hooks = new HashMap<>();
+		Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks = new HashMap<>();
 		for (ServiceStatus status : expectedStatuses)
-			hooks.put(status, statuses::add);
+			hooks.put(status, (service, status1) -> statuses.add(status1));
 
-		hooks.put(ServiceStatus.STARTED, s -> fail()); // that status should never be reached
+		hooks.put(ServiceStatus.STARTED, (s, s1) -> fail()); // that status should never be reached
 
 		// create queue to receive status changes
 		BlockingQueue<ServiceStatus> queue = new ArrayBlockingQueue<>(expectedStatuses.size(), true);
@@ -118,7 +118,7 @@ class ServiceTest {
 				.setErrorPatterns(List.of(Pattern.compile("error occurred", Pattern.CASE_INSENSITIVE)))
 				.setStartCmd("echo -e \"Starting...\nError occurred\nENOENT\" >&2"),
 			hooks,
-			(e) -> fail(),
+			(s, e) -> fail(),
 			queue
 		);
 		Thread t = new Thread(service);
@@ -136,7 +136,7 @@ class ServiceTest {
 	}
 
 	@Test
-	@DisplayName("Testing multiple up patterns")
+	@DisplayName("Testing multiple started patterns")
 	void runMultipleUp() throws InterruptedException, InstanceAlreadyExistsException {
 		String serviceName = "Test 3";
 
@@ -157,8 +157,8 @@ class ServiceTest {
 		// but it was made atomic just as a quick solution because lambda exp. requires a final variable
 		AtomicInteger i = new AtomicInteger();
 
-		Map<ServiceStatus, Consumer<ServiceStatus>> hooks = new HashMap<>();
-		hooks.put(ServiceStatus.STARTED, s -> i.incrementAndGet());
+		Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks = new HashMap<>();
+		hooks.put(ServiceStatus.STARTED, (s, s1) -> i.incrementAndGet());
 
 		// create queue to receive status changes
 		BlockingQueue<ServiceStatus> queue = new ArrayBlockingQueue<>(expectedStatuses.size(), true);
@@ -166,13 +166,13 @@ class ServiceTest {
 		Service service = new Service(
 			new ServiceConfig()
 				.setName(serviceName)
-				.setUpPatterns(List.of(
+				.setStartedPatterns(List.of(
 					Pattern.compile("is (up|running)", Pattern.CASE_INSENSITIVE),
 					Pattern.compile("successful test", Pattern.CASE_INSENSITIVE)
 				))
 				.setStartCmd("echo -e \"Service is up\nService is running\nSuccessful test!!\""),
 			hooks,
-			(e) -> fail(),
+			(s, e) -> fail(),
 			queue
 		);
 		Thread t = new Thread(service);

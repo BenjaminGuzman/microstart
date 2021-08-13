@@ -1,0 +1,49 @@
+{
+    "$schema": "https://raw.githubusercontent.com/BenjaminGuzman/microstart/main/src/main/resources/schema.json",
+    "services": [{
+        "name": "Test 1",
+        "start": "echo -e \"Testing config loader...\nIt works!\"",
+        "aliases": ["test1", "first"],
+        "color": "0x00ff00",
+        "workDir": "/tmp",
+        "startedPatterns": ["Works", "(service|server) is up"],
+        "errorPatterns": ["error", "errno"]
+    }, {
+        "name": "Test 2",
+        "start": "echo -e \"Testing config loader 2...\nIt works!\"",
+        "aliases": ["test2", "second"],
+        "color": "0x00ff00",
+        "workDir": "/tmp",
+        "startedPatterns": ["Works", "(service|server) is up"],
+        "errorPatterns": ["error", "errno"]
+    }],
+    "groups": [{
+        "name": "good group",
+        "services": ["Test 1"],
+        "aliases": ["pass", "good"],
+        "dependencies": ["good group 2"]
+    }, {
+        "name": "good group 2",
+        "services": ["Test 2"]
+    }, {
+        "name": "max depth",
+        "services": ["Test 1"],
+        "dependencies": ["good group"]
+    }, {
+        "name": "circular dependencies",
+        "services": ["Test 1"],
+        "dependencies": ["circular dependencies 2"]
+    }, {
+        "name": "circular dependencies 2",
+        "services": ["Test 1"],
+        "dependencies": ["circular dependencies"]
+    }, {
+        "name": "wrong dependency",
+        "services": ["Test 1"],
+        "dependencies": ["non existent dependency"]
+    }, {
+        "name": "wrong service",
+        "services": ["non existent service"]
+    }],
+    "maxDepth": 2
+}
