@@ -20,13 +20,14 @@
             "name": "Crypto",
             "aliases": ["crypto"],
             "start": "echo \"...\" && sleep 1 && echo \"Done.\"",
-            "color": "0xff0000",
+            "color": "0x0000ff",
             "startedPatterns": ["done"]
         },
         {
             "name": "Landing page",
             "aliases": ["landing"],
             "start": "sleep 5 && echo \"Compilation finished.\"",
+            "color": "0xf0f0f0",
             "startedPatterns": ["Compilation finished"]
         }
     ],
