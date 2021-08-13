@@ -18,6 +18,7 @@
 
 package net.benjaminguzman;
 
+import com.diogonunes.jcolor.Attribute;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -27,6 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import static com.diogonunes.jcolor.Ansi.colorize;
+
 /**
  * Wrapper class for all the configurations needed to run a microservice
  */
@@ -35,6 +38,10 @@ public class ServiceConfig {
 	 * Service name
 	 *
 	 * It is the name that will be printed to stdout
+	 *
+	 * It should be unique throughout the whole application
+	 *
+	 * {@link Service} ensures that uniqueness
 	 */
 	@NotNull
 	private String name = "Unnamed service";
@@ -48,7 +55,7 @@ public class ServiceConfig {
 	private File workingDirectory = Paths.get(".").toFile();
 
 	@NotNull
-	private List<Pattern> upPatterns = Collections.emptyList();
+	private List<Pattern> startedPatterns = Collections.emptyList();
 
 	@NotNull
 	private List<Pattern> errorPatterns = Collections.emptyList();
@@ -60,7 +67,7 @@ public class ServiceConfig {
 	 * ASCII color
 	 */
 	@NotNull
-	private String asciiColor = "";
+	private Attribute asciiColor = Attribute.WHITE_TEXT();
 
 	@NotNull
 	private String[] startCmd = {"npm", "run", "start"};
@@ -103,23 +110,23 @@ public class ServiceConfig {
 	}
 
 	/**
-	 * Get the list of patterns to indicate the service is up
+	 * Get the list of patterns to indicate the service has started (is up)
 	 *
-	 * If the text inside service (process) stdout matches one of these patterns, service will be considered to be
-	 * up
+	 * If the text inside service (process) stdout matches one of these patterns, service will be considered to
+	 * have been started
 	 * @return the list of patterns
-	 * @see #setUpPatterns(List)
+	 * @see #setStartedPatterns(List)
 	 */
 	@NotNull
-	public List<Pattern> getUpPatterns() {
-		return upPatterns;
+	public List<Pattern> getStartedPatterns() {
+		return startedPatterns;
 	}
 
 	/**
-	 * @see #getUpPatterns()
+	 * @see #getStartedPatterns()
 	 */
-	public ServiceConfig setUpPatterns(@NotNull List<Pattern> upPatterns) {
-		this.upPatterns = upPatterns;
+	public ServiceConfig setStartedPatterns(@NotNull List<Pattern> startedPatterns) {
+		this.startedPatterns = startedPatterns;
 		return this;
 	}
 
@@ -164,12 +171,7 @@ public class ServiceConfig {
 		return this;
 	}
 
-	@NotNull
-	public String getAsciiColor() {
-		return asciiColor;
-	}
-
-	public ServiceConfig setAsciiColor(String asciiColor) {
+	public ServiceConfig setAsciiColor(Attribute asciiColor) {
 		this.asciiColor = asciiColor;
 		this.setColorizedName();
 		return this;
@@ -204,7 +206,7 @@ public class ServiceConfig {
 	}
 
 	/**
-	 * Same as {@link #getName()} but with {@link #getAsciiColor()} at the beginning and
+	 * Same as {@link #getName()} but with {@link #asciiColor} at the beginning and
 	 * "\033[0m" (reset ASCII sequence) at the end
 	 *
 	 * You can safely print this to stdout
@@ -215,8 +217,7 @@ public class ServiceConfig {
 	}
 
 	/**
-	 * Same as {@link #getColorizedName()} but with {@link #getAsciiColor()} in red background to indicate an error
-	 * has happened
+	 * Same as {@link #getColorizedName()} but with special format to indicate an error has happened
 	 *
 	 * You can safely print this to stdout
 	 */
@@ -229,12 +230,26 @@ public class ServiceConfig {
 	 * Set the colorized name
 	 */
 	private void setColorizedName() {
-		colorizedName = asciiColor + name + "\033[0m";
+		colorizedName = colorize(name, asciiColor);
 		setColorizedErrorName();
 	}
 
 	private void setColorizedErrorName() {
-		colorizedErrorName = "\033[41mERROR " + colorizedName;
+		colorizedErrorName = colorize(name, Attribute.SLOW_BLINK(), Attribute.RED_TEXT());
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		ServiceConfig that = (ServiceConfig) o;
+		return name.equals(that.name); // name should be unique for each service config. If the name are equal,
+		// that implies object are also equal
+	}
+
+	@Override
+	public int hashCode() {
+		return name.hashCode(); // the name should be unique for each service config
 	}
 
 	@Override
@@ -242,12 +257,13 @@ public class ServiceConfig {
 		return "ServiceConfig{" +
 			"name='" + name + '\'' +
 			", workingDirectory=" + workingDirectory +
-			", upPatterns=" + upPatterns +
+			", startedPatterns=" + startedPatterns +
 			", errorPatterns=" + errorPatterns +
 			", aliases=" + aliases +
 			", asciiColor='" + asciiColor + '\'' +
 			", startCmd=" + Arrays.toString(startCmd) +
 			", colorizedName='" + colorizedName + '\'' +
+			", colorizedErrorName='" + colorizedErrorName + '\'' +
 			'}';
 	}
 }

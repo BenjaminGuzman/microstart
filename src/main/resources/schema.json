@@ -1,85 +1,104 @@
 {
-  "$id": "https://github.com/BenjaminGuzman/microstart/src/main/resources/schema.json",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "required": ["services", "groups"],
-  "properties": {
-    "services": {
-      "type": "array",
-      "description": "Array of services the application can run",
-      "items": {
-        "type": "object",
-        "required": ["name", "start"],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Service name. It'll be printed to stdout as prefix for each line received from the service process stdout"
-          },
-          "start": {
-            "type": "string",
-            "description": "Command to start the service. You can add bash operators, e.g. \"npm run build && npm run start\" will be run as 'sh -c \"npm run build && npm run start\"' or 'cmd /c \"npm run build && npm run start\"' in windows (it may not work since windows doesn't support && operator)"
-          },
-          "aliases": {
+    "$id": "https://raw.githubusercontent.com/BenjaminGuzman/microstart/main/src/main/resources/schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": ["services", "groups"],
+    "properties": {
+        "services": {
             "type": "array",
-            "description": "List of aliases for the name. With user interactive input these aliases can be useful",
+            "description": "Array of services the application can run",
             "items": {
-              "type": "string"
+                "type": "object",
+                "required": ["name", "start"],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9 _.-]+$",
+                        "description": "Service name. Should be unique among all services. It'll be printed to stdout as prefix for each line received from the service process stdout"
+                    },
+                    "start": {
+                        "type": "string",
+                        "description": "Command to start the service. You can add bash operators, e.g. \"npm run build && npm run start\" will be run as 'sh -c \"npm run build && npm run start\"' or 'cmd /c \"npm run build && npm run start\"' in windows (it may not work since cmd doesn't support && operator). Take into account that, the parent process for npm is sh (or cmd) and the parent process for sh is java, so java can handle its child process sh, but not the npm process"
+                    },
+                    "aliases": {
+                        "type": "array",
+                        "description": "List of aliases for the name. With user interactive input these aliases can be useful",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9 _.-]+$",
+                            "description": "Should be unique among all services"
+                        }
+                    },
+                    "color": {
+                        "type": "string",
+                        "description": "Color in either hex (prefix 0x), octal (prefix 0) or decimal format. If your terminal supports that text color, the service name will have it"
+                    },
+                    "workDir": {
+                        "type": "string",
+                        "description": "Working directory for the service process. Example: ~/projects/microstart"
+                    },
+                    "startedPatterns": {
+                        "type": "array",
+                        "description": "List of patterns that indicate the service has successfully started. Pattern is searched in output from process stdout",
+                        "items": {
+                            "type": "string",
+                            "description": "Pattern that indicates the service has started. Example: Server is (listening|up|running). Pattern is compiled with CASE_INSENSITIVE option"
+                        }
+                    },
+                    "errorPatterns": {
+                        "type": "array",
+                        "description": "List of patterns that indicate the service has had an error while starting up. Pattern is searched in output from process stderr. If a pattern in here appears after the service has started, it'll be totally ignored",
+                        "items": {
+                            "type": "string",
+                            "description": "Pattern that indicates the service has started. Example: errno is [0-9]{1, 2}. Pattern is compiled with CASE_INSENSITIVE option"
+                        }
+                    }
+                }
             }
-          },
-          "color": {
-            "type": "string",
-            "description": "Color in either hex (prefix 0x), octal (prefix 0) or decimal format. If your terminal supports that text color, the service name will have it"
-          },
-          "workDir": {
-            "type": "string",
-            "description": "Working directory for the service process. Example: ~/projects/microstart"
-          },
-          "upPatterns": {
+        },
+        "groups": {
             "type": "array",
-            "description": "List of patterns that indicate the service has successfully started",
+            "description": "Groups of services (dependencies)",
             "items": {
-              "type": "string",
-              "description": "Pattern that indicates the service has started. Example: Server is (listening|up|running). Pattern is compiled with CASE_INSENSITIVE option"
+                "type": "object",
+                "required": ["name", "services"],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9 _.-]+$",
+                        "description": "Name of the group. Should be unique among all service groups. For example: crypto. This one that will be printed. This is the name you need to provide as option or in the interactive input to run the service group"
+                    },
+                    "services": {
+                        "type": "array",
+                        "description": "List of services required to run in this group. For example: [\"crypto admin\", \"crypto public\"...]",
+                        "minItems": 1,
+                        "items": {
+                            "type": "string",
+                            "description": "Should be unique among all service groups"
+                        }
+                    },
+                    "aliases": {
+                        "type": "array",
+                        "description": "List of aliases for the name. With user interactive input these aliases can be useful",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9 _.-]+$"
+                        }
+                    },
+                    "dependencies": {
+                        "type": "array",
+                        "description": "List of groups required to be started before this group can be started. Provide the name of the group exactly as provided in the group's name field",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
-          },
-          "errorPatterns": {
-            "type": "array",
-            "description": "List of patterns that indicate the service has had an error while starting up. If a pattern in here appears after the service has started, it'll be totally ignored",
-            "items": {
-              "type": "string",
-              "description": "Pattern that indicates the service has started. Example: errno is [0-9]{1, 2}. Pattern is compiled with CASE_INSENSITIVE option"
-            }
-          }
+        },
+        "maxDepth": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Maximum depth in the dependency graph. If it is detected, a group has a dependency graph whose depth exceeds this maximum, an exception will be produced (and notified to user). Root node has depth=1"
         }
-      }
-    },
-    "groups": {
-      "type": "array",
-      "description": "Groups of services (dependencies)",
-      "items": {
-        "type": "object",
-        "required": ["name"],
-        "properties": {
-          "name": {
-            "type": "Name of the group. For example: crypto. This is the name you need to provide as option or in the interactive input to run the service group"
-          },
-          "services": {
-            "type": "array",
-            "description": "List of services required to run in this group. For example: [\"crypto admin\", \"crypto public\"...]",
-            "minItems": 1,
-            "items": {
-              "type": "string"
-            }
-          },
-          "dependencies": {
-            "type": "array",
-            "description": "List of groups required to be started before this group can be started. Give the name of the group exactly as provided in the group's name field",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      }
     }
-  }
 }

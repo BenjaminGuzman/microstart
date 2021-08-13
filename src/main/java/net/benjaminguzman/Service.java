@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,15 +57,16 @@ public class Service implements Runnable {
 	/**
 	 * Map of service status and consumers (hooks)
 	 * <p>
-	 * When the service reaches a new status, the specified consumer is run. Argument is the status that provoked
-	 * its execution
+	 * When the service reaches a new status, the specified consumer is run.
+	 * First argument is {@code this} service
+	 * Second argument is the status that provoked its execution
 	 * <p>
 	 * These consumers should be completed in short time (or spawn a thread to avoid blocking execution)
 	 *
 	 * @see ServiceStatus
 	 */
 	@NotNull
-	private final Map<ServiceStatus, Consumer<ServiceStatus>> hooks;
+	private final Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks;
 	private final Object statusLock = new Object();
 
 	/**
@@ -74,10 +76,12 @@ public class Service implements Runnable {
 	private final BlockingQueue<ServiceStatus> statusesQueue;
 
 	/**
-	 * Callback to be executed when an exception occurs
+	 * Callback to be executed when an exception occurs.
+	 * First argument is {@code this} service
+	 * Second argument is the exception produced
 	 */
 	@NotNull
-	private final Consumer<? super Exception> onException;
+	private final BiConsumer<Service, ? super Exception> onException;
 
 	/**
 	 * Indicates the service status
@@ -97,8 +101,8 @@ public class Service implements Runnable {
 	 */
 	public Service(
 		@NotNull ServiceConfig config,
-		@NotNull Map<ServiceStatus, Consumer<ServiceStatus>> hooks,
-		@NotNull Consumer<? super Exception> onException
+		@NotNull Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks,
+		@NotNull BiConsumer<Service, ? super Exception> onException
 	) throws InstanceAlreadyExistsException {
 		this(config, hooks, onException, null);
 	}
@@ -120,8 +124,8 @@ public class Service implements Runnable {
 	 */
 	public Service(
 		@NotNull ServiceConfig config,
-		@NotNull Map<ServiceStatus, Consumer<ServiceStatus>> hooks,
-		@NotNull Consumer<? super Exception> onException,
+		@NotNull Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks,
+		@NotNull BiConsumer<Service, ? super Exception> onException,
 		@Nullable BlockingQueue<ServiceStatus> statusesQueue
 	) throws InstanceAlreadyExistsException {
 		// ensure there is no other service loaded with the same name or alias
@@ -146,7 +150,7 @@ public class Service implements Runnable {
 	 * Get a {@link Service} by its name or alias
 	 *
 	 * @param name the name or alias of the service
-	 * @return the service with the given name
+	 * @return the service with the given name or null if not found (maybe it has not been loaded)
 	 */
 	@Nullable
 	public static Service forName(@NotNull String name) {
@@ -199,8 +203,8 @@ public class Service implements Runnable {
 
 		// set the hooks to be executed when service notifies it has successfully started
 		Map<Pattern, Consumer<String>> startUpHooks = new HashMap<>();
-		if (hooks.get(ServiceStatus.STARTED) != null && !config.getUpPatterns().isEmpty())
-			config.getUpPatterns().forEach(pattern -> {
+		if (hooks.get(ServiceStatus.STARTED) != null && !config.getStartedPatterns().isEmpty())
+			config.getStartedPatterns().forEach(pattern -> {
 				startUpHooks.put(pattern, s -> changeStatusSync(ServiceStatus.STARTED));
 			});
 
@@ -216,7 +220,7 @@ public class Service implements Runnable {
 			new Pipe.Builder(procStdout, System.out)
 				.setPrefix("[" + config.getColorizedName() + "]: ")
 				.setHooks(startUpHooks)
-				.setOnException(this.onException)
+				.setOnException(e -> this.onException.accept(this, e))
 				.setCloseOutStream(false)
 		);
 
@@ -224,7 +228,7 @@ public class Service implements Runnable {
 			new Pipe.Builder(procStderr, System.out)
 				.setPrefix("[" + config.getColorizedErrorName() + "]: ")
 				.setHooks(errorHooks)
-				.setOnException(this.onException)
+				.setOnException(e -> this.onException.accept(this, e))
 				.setCloseOutStream(false)
 		);
 
@@ -244,7 +248,7 @@ public class Service implements Runnable {
 			// thread interruption is expected, e.g. when you request service stop
 			changeStatusSync(ServiceStatus.STOPPED);
 		} catch (IOException e) {
-			this.onException.accept(e);
+			this.onException.accept(this, e);
 		}
 
 		// wait for application to finish
@@ -282,12 +286,17 @@ public class Service implements Runnable {
 
 	/**
 	 * @return the current status of the service. If you require a "history" of statuses use a queue as described in
-	 * {@link #Service(ServiceConfig, Map, Consumer, BlockingQueue)} constructor documentation
-	 * @see #Service(ServiceConfig, Map, Consumer, BlockingQueue)
+	 * {@link #Service(ServiceConfig, Map, BiConsumer, BlockingQueue)} constructor documentation
+	 * @see #Service(ServiceConfig, Map, BiConsumer, BlockingQueue)
 	 */
 	@NotNull
 	public ServiceStatus getStatus() {
 		return status;
+	}
+
+	@NotNull
+	public ServiceConfig getConfig() {
+		return config;
 	}
 
 	/**
@@ -297,7 +306,7 @@ public class Service implements Runnable {
 	 */
 	private void runHook(@NotNull ServiceStatus status) {
 		if (hooks.containsKey(status))
-			hooks.get(status).accept(status);
+			hooks.get(status).accept(this, status);
 	}
 
 	/**

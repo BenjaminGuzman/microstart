@@ -50,13 +50,13 @@ class ServiceConfigTest {
 	}
 
 	@Test
-	@DisplayName("up patterns getter and setter")
-	void upPatterns() {
+	@DisplayName("started patterns getter and setter")
+	void startedPatterns() {
 		List<Pattern> patterns = List.of(
 			Pattern.compile("Regex"),
 			Pattern.compile("Service is (up|running)")
 		);
-		assertEquals(patterns, config.setUpPatterns(patterns).getUpPatterns());
+		assertEquals(patterns, config.setStartedPatterns(patterns).getStartedPatterns());
 	}
 
 	@Test
@@ -74,14 +74,6 @@ class ServiceConfigTest {
 	void aliases() {
 		List<String> aliases = List.of("crypto", "cryptographic", "microcrypto");
 		assertEquals(aliases, config.setAliases(aliases).getAliases());
-	}
-
-	@Test
-	@DisplayName("Ascii color getter and setter")
-	void asciiColor() {
-		assertEquals("\033[92m", config.setAsciiColor("\033[92m").getAsciiColor());
-		assertEquals("\033[92m" + config.getName() + "\033[0m", config.getColorizedName());
-		assertEquals("\033[41mERROR " + config.getColorizedName(), config.getColorizedErrorName());
 	}
 
 	@Test
