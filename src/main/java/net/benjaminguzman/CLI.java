@@ -53,6 +53,13 @@ public class CLI implements Runnable {
 	 */
 	private final Queue<String> cmdsQueue = new LinkedList<>();
 
+	/**
+	 * Line with the initial commands. This is, the commands to be executed first, before reading directly from
+	 * stdin
+	 */
+	@Nullable
+	private String initialLineInput = null;
+
 	private final String waitingSymbol = "⏳";
 	private final String readySymbol = "✔";
 	private final String byeSymbol = "👋";
@@ -81,6 +88,12 @@ public class CLI implements Runnable {
 		setPromptWaiting(false);
 	}
 
+	public CLI(@NotNull String initialLineInput) throws InstanceAlreadyExistsException {
+		this();
+		if (!initialLineInput.isBlank())
+			this.initialLineInput = initialLineInput;
+	}
+
 	@Override
 	public void run() {
 		BufferedReader stdinReader = new BufferedReader(new InputStreamReader(System.in));
@@ -88,25 +101,15 @@ public class CLI implements Runnable {
 		String input;
 		boolean should_quit = false;
 		try {
-			while (!should_quit && (input = stdinReader.readLine()) != null) {
-				setPromptWaiting(true);
+			if (initialLineInput != null) // process the initial line
+				processInputLine(initialLineInput);
 
-				// separate multiple commands
-				String[] commands = input.trim().split(cmdSeparator);
-				cmdsQueue.addAll(Arrays.asList(commands));
-
-				// execute each command, until the queue is empty or the user asks to quit
-				while (!cmdsQueue.isEmpty()) {
-					should_quit = processSingleCommand(cmdsQueue.poll());
-					if (should_quit)
-						break;
-				}
-				setPromptWaiting(false);
-			}
+			while (!should_quit && (input = stdinReader.readLine()) != null)
+				should_quit = processInputLine(input);
 		} catch (IOException e) {
-			LOGGER.log(Level.SEVERE, "😱 Some really weird exception happened while reading from stdin", e);
+			LOGGER.log(Level.SEVERE, "😱 Some really weird exception happened while reading from stdin",
+				e);
 		} finally {
-			// TODO stop all services now
 			customStdout.printPrompt(byeSymbol);
 		}
 	}
@@ -118,17 +121,42 @@ public class CLI implements Runnable {
 		customStdout.printPrompt(is_waiting ? waitingSymbol : readySymbol);
 	}
 
+	/**
+	 * Process a single input line
+	 *
+	 * @param line the line to be processed
+	 * @return true if the line contained the "exit" command, false otherwise
+	 */
+	private boolean processInputLine(@NotNull String line) {
+		setPromptWaiting(true);
+
+		// separate multiple commands
+		String[] commands = line.trim().split(cmdSeparator);
+		cmdsQueue.addAll(Arrays.asList(commands));
+
+		// execute each command, until the queue is empty or the user asks to quit
+		boolean should_quit = false;
+		while (!cmdsQueue.isEmpty()) {
+			should_quit = processSingleCommand(cmdsQueue.poll());
+			if (should_quit)
+				break;
+		}
+		setPromptWaiting(false);
+
+		return should_quit;
+	}
+
 	private boolean processSingleCommand(@NotNull String cmd) {
 		cmd = cmd.toLowerCase().strip();
 
 		switch (cmd) {
-		case "q":
-		case "exit":
-		case "quit":
-			return true;
-		case "h":
-		case "help":
-			printHelp();
+			case "q":
+			case "exit":
+			case "quit":
+				return true;
+			case "h":
+			case "help":
+				printHelp();
 			return false;
 		}
 

@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -87,9 +88,11 @@ public class Microstart {
 
 		// start command line
 		try {
-			new CLI().run();
+			new CLI(cli.getOptionValue("input")).run();
 		} catch (InstanceAlreadyExistsException e) {
 			LOGGER.log(Level.SEVERE, "Shouldn't instantiate CLI more than once!", e);
+		} finally { // the application is exiting due to breakage of the cli loop
+			ServiceGroup.getGroups().forEach(ServiceGroup::shutdownNow);
 		}
 	}
 
@@ -102,12 +105,12 @@ public class Microstart {
 			true,
 			"Path to the json config file. Default: " + DEFAULT_CONFIG_FILE
 		);
-//		options.addOption(
-//			"i",
-//			"input",
-//			true,
-//			"Command(s) to be executed by microstart CLI. Example: \"start <service name>\""
-//		);
+		options.addOption(
+			"i",
+			"input",
+			true,
+			"Command(s) to be executed by microstart CLI. Example: \"start group <service group name>\""
+		);
 		options.addOption("h", "help", false, "Print this message");
 
 		return options;
@@ -128,5 +131,47 @@ public class Microstart {
 				LOGGER.log(Level.SEVERE, "😱 Exception while parsing CLI options", e);
 		}
 		return null;
+	}
+
+	/**
+	 * Tries to stop all running process that may have been run before
+	 *
+	 * @param forcibly if true, {@link Process#destroyForcibly()} will be used to destroy the process, if false,
+	 *                 {@link Process#destroy()} will be used
+	 */
+	public static void destroyProcesses(boolean forcibly) {
+		Service.services().forEach(service -> {
+			Process proc = service.getProc();
+			if (proc != null && proc.isAlive()) // stop all processes that are alive
+				if (forcibly)
+					proc.destroyForcibly();
+				else
+					proc.destroy();
+		});
+	}
+
+	/**
+	 * Blocks until all processes have finished.
+	 * <p>
+	 * This is a complement to {@link #destroyProcesses(boolean)}. You may want to call that first
+	 *
+	 * @see #destroyProcesses(boolean)
+	 */
+	public static void waitForProcesses() {
+		Service.services().forEach(service -> {
+			Process proc = service.getProc();
+			if (proc != null) { // stop all processes that are alive
+				try {
+					proc.waitFor(5, TimeUnit.SECONDS);
+				} catch (InterruptedException e) {
+					LOGGER.log(
+						Level.WARNING,
+						"Exception produced while waiting for process in service " + service.getConfig()
+							.getColorizedName(),
+						e
+					);
+				}
+			}
+		});
 	}
 }

@@ -22,7 +22,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.management.InstanceAlreadyExistsException;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -120,13 +122,20 @@ public class ServiceGroup {
 	}
 
 	/**
+	 * @return list of loaded service groups
+	 */
+	public static Collection<ServiceGroup> getGroups() {
+		return serviceGroups.values();
+	}
+
+	/**
 	 * Starts a service group.
 	 * <p>
 	 * This will manage the execution of group services and singleton services with threads, so you don't have to
 	 * worry about it
 	 *
 	 * @throws InstanceAlreadyExistsException if a service group with the same name or alias has already
-	 * been instantiated
+	 *                                        been instantiated
 	 */
 	public void start() throws InstanceAlreadyExistsException {
 		if (this.isUp())
@@ -163,6 +172,14 @@ public class ServiceGroup {
 	 */
 	public boolean isUp() {
 		return servicesLatch.getCount() == 0;
+	}
+
+	/***
+	 * Calls {@link ExecutorService#shutdownNow()} on the executor service used to run services inside this group
+	 * @return same as {@link ExecutorService#shutdownNow()}
+	 */
+	public List<Runnable> shutdownNow() {
+		return executorService.shutdownNow();
 	}
 
 	private void onServiceStarted(Service service, ServiceStatus started) {
