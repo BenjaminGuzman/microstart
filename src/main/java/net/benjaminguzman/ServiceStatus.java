@@ -61,4 +61,14 @@ public enum ServiceStatus {
 	public static boolean canServiceBeStarted(@NotNull ServiceStatus status) {
 		return status == LOADED || status == STOPPED;
 	}
+
+	/**
+	 * Tells if the service is currently running or is about to be running (is starting)
+	 *
+	 * @param status current service status
+	 * @return true if the service is running, false otherwise
+	 */
+	public static boolean isRunning(@NotNull ServiceStatus status) {
+		return status != LOADED && status != STOPPED;
+	}
 }

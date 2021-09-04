@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.management.InstanceAlreadyExistsException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +83,12 @@ public class Service implements Runnable {
 	 */
 	@NotNull
 	private final BiConsumer<Service, ? super Exception> onException;
+
+	/**
+	 * The process that runs this service
+	 */
+	@Nullable
+	private Process proc;
 
 	/**
 	 * Indicates the service status
@@ -158,6 +165,13 @@ public class Service implements Runnable {
 	}
 
 	/**
+	 * @return a list of all loaded services
+	 */
+	public static Collection<Service> services() {
+		return services.values();
+	}
+
+	/**
 	 * When an object implementing interface <code>Runnable</code> is used
 	 * to create a thread, starting the thread causes the object's
 	 * <code>run</code> method to be called in that separately executing
@@ -181,7 +195,6 @@ public class Service implements Runnable {
 		ProcessBuilder processBuilder = new ProcessBuilder(config.getStartCmd())
 			.directory(config.getWorkingDirectory());
 
-		Process proc;
 		try {
 			proc = processBuilder.start();
 			LOGGER.info(() -> config.getColorizedName() + " PID: " + proc.pid());
@@ -297,6 +310,14 @@ public class Service implements Runnable {
 	@NotNull
 	public ServiceConfig getConfig() {
 		return config;
+	}
+
+	/**
+	 * @return the process that is running by this service
+	 */
+	@Nullable
+	public Process getProc() {
+		return proc;
 	}
 
 	/**
