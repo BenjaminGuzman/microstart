@@ -1,6 +1,11 @@
+# IDE's
 **/.idea
 **/.vscode
 
+# Other files
+**/*.dia~
+
+# Maven/java configs
 target/
 pom.xml.tag
 pom.xml.releaseBackup

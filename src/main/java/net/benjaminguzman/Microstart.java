@@ -36,6 +36,13 @@ public class Microstart {
 	public static final Logger LOGGER = Logger.getLogger(Microstart.class.getName());
 	public static final boolean IS_WINDOWS = System.getProperty("os.name").contains("win");
 
+	/**
+	 * If true, and an error occurred while running a service or group
+	 * <p>
+	 * The application should continue execution
+	 */
+	public static boolean CONTINUE_AFTER_ERROR = true;
+
 	public static final String DEFAULT_CONFIG_FILE = "microstart.json";
 
 	public static void main(String... args) {
@@ -85,6 +92,8 @@ public class Microstart {
 			LOGGER.severe(e.getMessage());
 			return;
 		}
+		assert ConfigLoader.getInstance() != null;
+		CONTINUE_AFTER_ERROR = ConfigLoader.getInstance().shouldContinueAfterError();
 
 		// start command line
 		try {

@@ -94,6 +94,44 @@ public class ConfigLoader {
 	}
 
 	/**
+	 * @return the value of the key continueAfterError in the JSON file or true if it is not defined
+	 */
+	public boolean shouldContinueAfterError() {
+		return rootNode.optBoolean("continueAfterError", true);
+	}
+
+	/**
+	 * Loads a {@link ServiceConfig} for the service with the given name or alias
+	 *
+	 * @param name name or alias to be searched in the array of services defined in configuration file
+	 * @return the corresponding {@link ServiceConfig} or null if not found
+	 * @throws JSONException            if the configuration has invalid format
+	 * @throws FileNotFoundException    If the specified working directory for a service is not found
+	 * @throws ServiceNotFoundException if the service configuration was not found
+	 */
+	@NotNull
+	public ServiceConfig loadServiceConfig(@NotNull String name) throws FileNotFoundException, JSONException,
+		ServiceNotFoundException {
+		return loadServiceConfigJSON(name);
+	}
+
+	/**
+	 * Loads a {@link ServiceGroup} for the service group with the given name or alias
+	 *
+	 * @param name name or alias to be searched in the array of group services defined in configuration file
+	 * @return the corresponding {@link ServiceGroup} or null if not found
+	 * @throws JSONException            if the configuration has invalid format
+	 * @throws FileNotFoundException    if the specified working directory for a service is not found
+	 * @throws ServiceNotFoundException if the service configuration was not found
+	 */
+	@NotNull
+	public ServiceGroupConfig loadGroupConfig(@NotNull String name) throws JSONException,
+		MaxDepthExceededException, GroupNotFoundException, CircularDependencyException, FileNotFoundException,
+		ServiceNotFoundException {
+		return loadServiceGroupConfigJSON(name);
+	}
+
+	/**
 	 * Search and get the corresponding {@link JSONObject} within the array whose name or alias is the specified
 	 * one.
 	 * <p>
@@ -135,34 +173,6 @@ public class ConfigLoader {
 			.filter(o -> o instanceof String)
 			.map(o -> (String) o)
 			.collect(Collectors.toList());
-	}
-
-	/**
-	 * Loads a {@link ServiceConfig} for the service with the given name or alias
-	 *
-	 * @param name name or alias to be searched in the array of services defined in configuration file
-	 * @return the corresponding {@link ServiceConfig} or null if not found
-	 * @throws JSONException         if the configuration has invalid format
-	 * @throws FileNotFoundException If the specified working directory for a service is not found
-	 * @throws ServiceNotFoundException if the service configuration was not found
-	 */
-	@NotNull
-	public ServiceConfig loadServiceConfig(@NotNull String name) throws FileNotFoundException, JSONException, ServiceNotFoundException {
-		return loadServiceConfigJSON(name);
-	}
-
-	/**
-	 * Loads a {@link ServiceGroup} for the service group with the given name or alias
-	 *
-	 * @param name name or alias to be searched in the array of group services defined in configuration file
-	 * @return the corresponding {@link ServiceGroup} or null if not found
-	 * @throws JSONException            if the configuration has invalid format
-	 * @throws FileNotFoundException    if the specified working directory for a service is not found
-	 * @throws ServiceNotFoundException if the service configuration was not found
-	 */
-	@NotNull
-	public ServiceGroupConfig loadGroupConfig(@NotNull String name) throws JSONException, MaxDepthExceededException, GroupNotFoundException, CircularDependencyException, FileNotFoundException, ServiceNotFoundException {
-		return loadServiceGroupConfigJSON(name);
 	}
 
 	/**
