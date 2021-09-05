@@ -201,11 +201,16 @@ public class ServiceGroup {
 
 	private void onServiceError(Service service, ServiceStatus error) {
 		LOGGER.severe(
-			"💥 Error has been produced inside " + service.getConfig().getColorizedName()
-				+ " service 💥"
-				+ "💥 All groups depending on this service won't be run, "
-				+ "unless started pattern appears 💥"
+			"🔥 Error has been produced inside " + service.getConfig().getColorizedName() + " service 🔥\n"
+				+ (Microstart.CONTINUE_AFTER_ERROR
+				? "💥 Services will continue execution 💥"
+				: "Next service group in the graph will not be executed")
 		);
+
+		if (Microstart.CONTINUE_AFTER_ERROR) {
+			servicesLatch.countDown();
+			countDownTimes.put(service, 1);
+		}
 	}
 
 	private void onException(Service service, Exception e) {
