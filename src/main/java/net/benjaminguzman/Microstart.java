@@ -49,8 +49,10 @@ public class Microstart {
 		System.out.println(
 			"Micro start version: " + Microstart.class.getPackage().getImplementationVersion() + "\n" +
 				"Copyright (c) 2021. Benjamín Antonio Velasco Guzmán\n" +
-				"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>\n" +
-				"This is free software: you are free to change and redistribute it.\n"
+				"This program comes with ABSOLUTELY NO WARRANTY.\n" +
+				"This is free software, and you are welcome to redistribute it\n" +
+				"under certain conditions.\n" +
+				"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>"
 		);
 
 		CommandLine cli = parseCLIArgs(args);
@@ -97,7 +99,11 @@ public class Microstart {
 
 		// start command line
 		try {
-			new CLI(cli.getOptionValue("input")).run();
+			String inputLine = cli.getOptionValue("input");
+			if (inputLine != null)
+				new CLI(inputLine).run();
+			else
+				new CLI().run();
 		} catch (InstanceAlreadyExistsException e) {
 			LOGGER.log(Level.SEVERE, "Shouldn't instantiate CLI more than once!", e);
 		} finally { // the application is exiting due to breakage of the cli loop
