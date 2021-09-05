@@ -1,0 +1,6 @@
+digraph Example {
+    {WebApp[color=blue] AndroidApp[color=blue] IOSApp[color=blue]} -> Gateway
+    Gateway -> {Login[color=green] Users[color=green] Catalogs[color=green]}
+    {Login Users} -> {Redis[color=red] Solr[color=red]}
+    Catalogs -> {PostgreSQL[color=red]}
+}

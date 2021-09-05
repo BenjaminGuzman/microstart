@@ -1,0 +1,3 @@
+digraph Example {
+    "Landing page" -> {Users Crypto} -> "Search engine"
+}
