@@ -64,11 +64,23 @@ public enum ServiceStatus {
 
 	/**
 	 * Tells if the service is currently running or is about to be running (is starting)
+	 * <p>
+	 * A service is running if its status is one of {@link ServiceStatus#STARTING},
+	 * {@link ServiceStatus#STARTED}, {@link ServiceStatus#ERROR}, {@link ServiceStatus#STOPPING}.
+	 * <p>
+	 * In other words, a service is running if it has been loaded and hasn't been
 	 *
-	 * @param status current service status
 	 * @return true if the service is running, false otherwise
 	 */
-	public static boolean isRunning(@NotNull ServiceStatus status) {
-		return status != LOADED && status != STOPPED;
+	public boolean isRunning() {
+		switch (this) {
+			case STARTING:
+			case STARTED:
+			case ERROR:
+			case STOPPING:
+				return true;
+			default:
+				return false;
+		}
 	}
 }

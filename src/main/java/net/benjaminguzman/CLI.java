@@ -102,7 +102,7 @@ public class CLI implements Runnable {
 		boolean should_quit = false;
 		try {
 			if (initialLineInput != null) // process the initial line
-				processInputLine(initialLineInput);
+				should_quit = processInputLine(initialLineInput);
 
 			while (!should_quit && (input = stdinReader.readLine()) != null)
 				should_quit = processInputLine(input);
@@ -159,9 +159,12 @@ public class CLI implements Runnable {
 				printHelp();
 			return false;
 		}
+		System.out.println("Processing command: \"" + cmd + "\"");
 
 		// deal with group commands
 		if (cmd.startsWith("start group") || cmd.startsWith("group start")) {
+			// notice how removing "group start" or "start group" gives the same result because both string
+			// lengths are equal
 			String groupName = cmd.substring("group start".length()).stripLeading();
 			startGroupByName(groupName);
 			return false;
