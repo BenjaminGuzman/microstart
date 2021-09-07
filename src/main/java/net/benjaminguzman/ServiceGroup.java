@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -174,12 +175,31 @@ public class ServiceGroup {
 		return servicesLatch.getCount() == 0;
 	}
 
-	/***
+	/**
+	 * @return {@link ServiceGroupConfig} object used to configure this service group
+	 */
+	@NotNull
+	public ServiceGroupConfig getConfig() {
+		return config;
+	}
+
+	/**
 	 * Calls {@link ExecutorService#shutdownNow()} on the executor service used to run services inside this group
+	 *
 	 * @return same as {@link ExecutorService#shutdownNow()}
 	 */
 	public List<Runnable> shutdownNow() {
 		return executorService.shutdownNow();
+	}
+
+	/**
+	 * Calls {@link ExecutorService#awaitTermination(long, TimeUnit)} on the executor service used to run services
+	 * inside this group
+	 *
+	 * @return same as {@link ExecutorService#awaitTermination(long, TimeUnit)}
+	 */
+	public boolean awaitTermination(long timeout, @NotNull TimeUnit unit) throws InterruptedException {
+		return executorService.awaitTermination(timeout, unit);
 	}
 
 	private void onServiceStarted(Service service, ServiceStatus started) {

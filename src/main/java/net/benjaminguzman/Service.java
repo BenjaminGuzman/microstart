@@ -259,6 +259,10 @@ public class Service implements Runnable {
 			stderrThread.join();
 		} catch (InterruptedException ignored) {
 			// thread interruption is expected, e.g. when you request service stop
+			proc.destroy();
+
+			// status is changed just for safety,
+			// in case the thread won't continue (because it has been requested to stop)
 			changeStatusSync(ServiceStatus.STOPPED);
 		} catch (IOException e) {
 			this.onException.accept(this, e);
@@ -271,8 +275,11 @@ public class Service implements Runnable {
 		try {
 			exit_code = proc.waitFor(); // wait until the process finishes
 		} catch (InterruptedException ignored) {
-			exit_code = Integer.MIN_VALUE;
 			// thread interruption is expected, e.g. when you request service stop
+			exit_code = Integer.MIN_VALUE;
+
+			// status is changed just for safety,
+			// in case the thread won't continue (because it has been requested to stop)
 			changeStatusSync(ServiceStatus.STOPPED);
 		}
 
@@ -288,7 +295,7 @@ public class Service implements Runnable {
 		}
 
 		String exitMessage = "Service " + config.getColorizedName() + " exited";
-		if (exit_code == Integer.MIN_VALUE) // if thread has been interrupted this may never be executed anyway
+		if (exit_code == Integer.MIN_VALUE) // if thread has been interrupted this may not be executed anyway
 			exitMessage += " because thread was interrupted";
 		else
 			exitMessage += " with status code " + exit_code + " " +
