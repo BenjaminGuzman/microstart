@@ -152,11 +152,24 @@ public class ServiceGroup {
 		}
 
 		for (ServiceConfig serviceConfig : config.getServicesConfigs()) {
+			boolean submit2Executor = true;
+
 			Service service;
 			if ((service = Service.forName(serviceConfig.getName())) == null)
 				service = new Service(serviceConfig, defaultServiceHooks, this::onException);
+			else // service has already been loaded, and probably is running
+				if (service.getStatus().isRunning()) {
+					System.out.println(service.getConfig()
+						.getColorizedName() + " has already started");
 
-			executorService.submit(service);
+					// countdown the latch and don't submit the service to execution
+					// because it is already running
+					submit2Executor = false;
+					servicesLatch.countDown();
+				}
+
+			if (submit2Executor)
+				executorService.submit(service);
 		}
 
 		// wait until all services are up
