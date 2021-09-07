@@ -52,7 +52,7 @@ public class Microstart {
 				"This program comes with ABSOLUTELY NO WARRANTY.\n" +
 				"This is free software, and you are welcome to redistribute it\n" +
 				"under certain conditions.\n" +
-				"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>"
+				"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>\n"
 		);
 
 		CommandLine cli = parseCLIArgs(args);
@@ -107,7 +107,23 @@ public class Microstart {
 		} catch (InstanceAlreadyExistsException e) {
 			LOGGER.log(Level.SEVERE, "Shouldn't instantiate CLI more than once!", e);
 		} finally { // the application is exiting due to breakage of the cli loop
+			// This won't execute if SIGINT is received, therefore it is convenient to ask
+			// this should be inside a shutdown hook?
+			// it seems the JVM successfully handles child process destruction when SIGINT is received
+			// so let's hope it is true for any architecture and 🤞 there are no dangling process after
+			// exit
 			ServiceGroup.getGroups().forEach(ServiceGroup::shutdownNow);
+			ServiceGroup.getGroups().forEach(group -> {
+				try {
+					group.awaitTermination(5, TimeUnit.SECONDS);
+				} catch (InterruptedException e) {
+					LOGGER.warning(
+						"Group "
+							+ group.getConfig().getName()
+							+ " couldn't be gracefully shut down"
+					);
+				}
+			});
 		}
 	}
 

@@ -11,6 +11,9 @@ It is similar to docker compose, but these are the main differences:
 - This does not require a docker container to be built. Any command you run from command line can be run here
 - It supports process groups and dependencies (see below)
 
+**It is intended to be used in development environment preferably**, since in production you have more pro stuff like
+docker and k8s.
+
 ## Concepts
 
 Note: **process** and **service** are used interchangeably here. This is because the main focus of the application is to
