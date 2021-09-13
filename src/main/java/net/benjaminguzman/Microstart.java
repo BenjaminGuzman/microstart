@@ -112,8 +112,8 @@ public class Microstart {
 			// it seems the JVM successfully handles child process destruction when SIGINT is received
 			// so let's hope it is true for any architecture and 🤞 there are no dangling process after
 			// exit
-			ServiceGroup.getGroups().forEach(ServiceGroup::shutdownNow);
-			ServiceGroup.getGroups().forEach(group -> {
+			Group.getGroups().forEach(Group::shutdownNow);
+			Group.getGroups().forEach(group -> {
 				try {
 					group.awaitTermination(5, TimeUnit.SECONDS);
 				} catch (InterruptedException e) {

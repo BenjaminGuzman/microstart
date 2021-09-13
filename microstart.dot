@@ -1,0 +1,10 @@
+digraph {
+subgraph Group1 {
+    "Admin service" -> "Editor service"
+}
+
+subgraph "Group 2" {
+    fillcolor=green
+    "hola" -> "mundo"
+}
+}

@@ -367,4 +367,19 @@ public class Service implements Runnable {
 			changeStatus(newStatus);
 		}
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		Service other = (Service) o;
+		return config.equals(other.config); // this will actually just check equality for service names
+	}
+
+	@Override
+	public int hashCode() {
+		// this will actually return the hashcode for the service name, which should be unique throughout
+		// the application
+		return config.hashCode();
+	}
 }

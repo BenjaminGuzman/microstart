@@ -108,15 +108,22 @@ class ConfigLoaderTest {
 	@Test
 	@DisplayName("Testing config loader for good service group configuration")
 	void loadGroupWGoodConfig() throws MaxDepthExceededException, ServiceNotFoundException, FileNotFoundException, GroupNotFoundException, CircularDependencyException {
-		ServiceGroupConfig config = Objects.requireNonNull(ConfigLoader.getInstance()).loadGroupConfig("good group");
+		GroupConfig config = Objects.requireNonNull(ConfigLoader.getInstance()).loadGroupConfig("good group");
 		assertEquals("good group", config.getName());
 		assertEquals(List.of("pass", "good"), config.getAliases());
 
 		// check dependencies have been loaded correctly
-		ServiceGroupConfig deps = config.getDependenciesConfigs().get(0);
+		GroupConfig deps = config.getDependenciesConfigs().get(0);
 		assertEquals(1, config.getDependenciesConfigs().size());
 		assertEquals("good group 2", deps.getName());
 		assertEquals("Test 2", deps.getServicesConfigs().get(0).getName());
 		assertEquals("/tmp", deps.getServicesConfigs().get(0).getWorkingDirectory().toString());
+	}
+
+	@Test
+	@DisplayName("Testing it loads ALL configuration")
+	void load() {
+		assertThrows(MaxDepthExceededException.class, () -> Objects.requireNonNull(ConfigLoader.getInstance())
+			.load());
 	}
 }

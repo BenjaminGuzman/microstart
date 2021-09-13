@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.List;
 
-public class ServiceGroupConfig {
+public class GroupConfig {
 	@NotNull
 	private String name = "Unnamed group";
 
@@ -31,7 +31,7 @@ public class ServiceGroupConfig {
 	private List<String> aliases = Collections.emptyList();
 
 	@NotNull
-	private List<ServiceGroupConfig> dependenciesConfigs = Collections.emptyList();
+	private List<GroupConfig> dependenciesConfigs = Collections.emptyList();
 
 	@NotNull
 	private List<ServiceConfig> servicesConfigs = Collections.emptyList();
@@ -41,7 +41,7 @@ public class ServiceGroupConfig {
 		return name;
 	}
 
-	public ServiceGroupConfig setName(@NotNull String name) {
+	public GroupConfig setName(@NotNull String name) {
 		this.name = name;
 		return this;
 	}
@@ -51,17 +51,17 @@ public class ServiceGroupConfig {
 		return aliases;
 	}
 
-	public ServiceGroupConfig setAliases(@NotNull List<String> aliases) {
+	public GroupConfig setAliases(@NotNull List<String> aliases) {
 		this.aliases = aliases;
 		return this;
 	}
 
 	@NotNull
-	public List<ServiceGroupConfig> getDependenciesConfigs() {
+	public List<GroupConfig> getDependenciesConfigs() {
 		return dependenciesConfigs;
 	}
 
-	public ServiceGroupConfig setDependenciesConfigs(@NotNull List<ServiceGroupConfig> dependenciesConfigs) {
+	public GroupConfig setDependenciesConfigs(@NotNull List<GroupConfig> dependenciesConfigs) {
 		this.dependenciesConfigs = dependenciesConfigs;
 		return this;
 	}
@@ -71,7 +71,7 @@ public class ServiceGroupConfig {
 		return servicesConfigs;
 	}
 
-	public ServiceGroupConfig setServicesConfigs(@NotNull List<ServiceConfig> servicesConfigs) {
+	public GroupConfig setServicesConfigs(@NotNull List<ServiceConfig> servicesConfigs) {
 		this.servicesConfigs = servicesConfigs;
 		return this;
 	}
