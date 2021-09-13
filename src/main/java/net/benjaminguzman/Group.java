@@ -36,11 +36,11 @@ import java.util.logging.Logger;
 
 /**
  * Class containing a group of services to run
- *
+ * <p>
  * This class can also start the list group and execute it
  */
-public class ServiceGroup {
-	private static final Logger LOGGER = Logger.getLogger(ServiceGroup.class.getName());
+public class Group {
+	private static final Logger LOGGER = Logger.getLogger(Group.class.getName());
 
 	/**
 	 * Map of names and service groups
@@ -50,13 +50,13 @@ public class ServiceGroup {
 	 * This contains all the available service groups throughout the application
 	 */
 	@NotNull
-	private final static Map<String, ServiceGroup> serviceGroups = new HashMap<>();
+	private final static Map<String, Group> serviceGroups = new HashMap<>();
 
 	/**
 	 * Configuration for this service group
 	 */
 	@NotNull
-	private final ServiceGroupConfig config;
+	private final GroupConfig config;
 
 	/**
 	 * Latch to be counted down each time a service in the group has started
@@ -87,9 +87,9 @@ public class ServiceGroup {
 	 *
 	 * @param config configuration for the service group
 	 * @throws InstanceAlreadyExistsException if a service group with the same name or alias has already been
-	 * instantiated previously
+	 *                                        instantiated previously
 	 */
-	public ServiceGroup(@NotNull ServiceGroupConfig config) throws InstanceAlreadyExistsException {
+	public Group(@NotNull GroupConfig config) throws InstanceAlreadyExistsException {
 		// ensure there is no other service loaded with the same name or alias
 		if (forName(config.getName()) != null // using stream is probably not efficient, but it is easy
 			|| config.getAliases().stream().anyMatch(alias -> forName(alias) != null))
@@ -112,20 +112,20 @@ public class ServiceGroup {
 	}
 
 	/**
-	 * Get a {@link ServiceGroup} by its name or alias
+	 * Get a {@link Group} by its name or alias
 	 *
 	 * @param name the name or alias of the service
 	 * @return the service with the given name or null if not found (maybe it has not been loaded)
 	 */
 	@Nullable
-	public static ServiceGroup forName(@NotNull String name) {
+	public static Group forName(@NotNull String name) {
 		return serviceGroups.get(name);
 	}
 
 	/**
 	 * @return list of loaded service groups
 	 */
-	public static Collection<ServiceGroup> getGroups() {
+	public static Collection<Group> getGroups() {
 		return serviceGroups.values();
 	}
 
@@ -142,10 +142,10 @@ public class ServiceGroup {
 		if (this.isUp())
 			return;
 
-		for (ServiceGroupConfig groupConfig : config.getDependenciesConfigs()) {
-			ServiceGroup dependency;
+		for (GroupConfig groupConfig : config.getDependenciesConfigs()) {
+			Group dependency;
 			if ((dependency = forName(groupConfig.getName())) == null) // dependency has not been loaded
-				dependency = new ServiceGroup(groupConfig);
+				dependency = new Group(groupConfig);
 
 			if (!dependency.isUp())
 				dependency.start(); // start dependency services (and dependencies if they exist)
@@ -189,10 +189,10 @@ public class ServiceGroup {
 	}
 
 	/**
-	 * @return {@link ServiceGroupConfig} object used to configure this service group
+	 * @return {@link GroupConfig} object used to configure this service group
 	 */
 	@NotNull
-	public ServiceGroupConfig getConfig() {
+	public GroupConfig getConfig() {
 		return config;
 	}
 
