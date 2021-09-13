@@ -28,12 +28,9 @@ import org.junit.jupiter.api.Test;
 import javax.management.InstanceAlreadyExistsException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-class ServiceGroupTest {
+class GroupTest {
 	@BeforeAll
 	static void beforeAll() throws IOException, InstanceAlreadyExistsException {
 		if (ConfigLoader.getInstance() == null)
@@ -41,8 +38,9 @@ class ServiceGroupTest {
 	}
 
 	@Test
-	void start() throws MaxDepthExceededException, ServiceNotFoundException, FileNotFoundException, GroupNotFoundException, CircularDependencyException, InstanceAlreadyExistsException {
-		ServiceGroupConfig config = Objects.requireNonNull(ConfigLoader.getInstance()).loadGroupConfig("good group");
+	void start() throws MaxDepthExceededException, ServiceNotFoundException, FileNotFoundException,
+		GroupNotFoundException, CircularDependencyException, InstanceAlreadyExistsException {
+		GroupConfig config = Objects.requireNonNull(ConfigLoader.getInstance()).loadGroupConfig("good group");
 		//ServiceGroup group = new ServiceGroup(config);
 		//group.start();
 		// uncomment to see results

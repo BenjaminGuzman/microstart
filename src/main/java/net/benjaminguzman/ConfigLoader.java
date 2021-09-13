@@ -94,10 +94,44 @@ public class ConfigLoader {
 	}
 
 	/**
-	 * @return the value of the key continueAfterError in the JSON file or true if it is not defined
+	 * Loads ALL the configuration in the configuration file
+	 *
+	 * @return the loaded configuration
+	 */
+	public Config load() throws ServiceNotFoundException, FileNotFoundException, MaxDepthExceededException,
+		GroupNotFoundException, CircularDependencyException {
+		Config conf = Config.getInstance();
+
+		// load single values
+		conf.setContinueAfterError(shouldContinueAfterError())
+			.setMaxDepth(maxDepth());
+
+		// load all services
+		JSONArray servicesArr = rootNode.getJSONArray("services");
+		for (Object service : servicesArr)
+			conf.addService(loadServiceConfig(((JSONObject) service).getString("name")));
+
+		// load all groups
+		JSONArray groupsArr = rootNode.getJSONArray("groups");
+		for (Object group : groupsArr)
+			conf.addGroup(loadGroupConfig(((JSONObject) group).getString("name")));
+
+		return conf;
+	}
+
+	/**
+	 * @return the value of the key continueAfterError in the JSON file or
+	 * {@link ConfigDefaults#CONTINUE_AFTER_ERROR} if not defined
 	 */
 	public boolean shouldContinueAfterError() {
-		return rootNode.optBoolean("continueAfterError", true);
+		return rootNode.optBoolean("continueAfterError", ConfigDefaults.CONTINUE_AFTER_ERROR);
+	}
+
+	/**
+	 * @return the value of the key maxDepth in the JSON file or {@link ConfigDefaults#MAX_DEPTH} if not defined
+	 */
+	public int maxDepth() {
+		return rootNode.optInt("maxDepth", ConfigDefaults.MAX_DEPTH);
 	}
 
 	/**
@@ -116,19 +150,19 @@ public class ConfigLoader {
 	}
 
 	/**
-	 * Loads a {@link ServiceGroup} for the service group with the given name or alias
+	 * Loads a {@link Group} for the service group with the given name or alias
 	 *
 	 * @param name name or alias to be searched in the array of group services defined in configuration file
-	 * @return the corresponding {@link ServiceGroup} or null if not found
+	 * @return the corresponding {@link Group} or null if not found
 	 * @throws JSONException            if the configuration has invalid format
 	 * @throws FileNotFoundException    if the specified working directory for a service is not found
 	 * @throws ServiceNotFoundException if the service configuration was not found
 	 */
 	@NotNull
-	public ServiceGroupConfig loadGroupConfig(@NotNull String name) throws JSONException,
+	public GroupConfig loadGroupConfig(@NotNull String name) throws JSONException,
 		MaxDepthExceededException, GroupNotFoundException, CircularDependencyException, FileNotFoundException,
 		ServiceNotFoundException {
-		return loadServiceGroupConfigJSON(name);
+		return loadGroupConfigJSON(name);
 	}
 
 	/**
@@ -252,18 +286,19 @@ public class ConfigLoader {
 	}
 
 	/**
-	 * Loads a {@link ServiceGroupConfig} for the service group with the given name or alias assuming the contents
+	 * Loads a {@link GroupConfig} for the service group with the given name or alias assuming the contents
 	 * in config file have json format
 	 *
 	 * @param name name or alias to be looked in the array of groups defined in configuration file
-	 * @return the corresponding {@link ServiceGroupConfig} or null if not found
+	 * @return the corresponding {@link GroupConfig} or null if not found
 	 * @throws JSONException               if the configuration has invalid format
 	 * @throws CircularDependencyException if it is not a DAG, and therefore it has circular dependencies
 	 * @throws GroupNotFoundException      if a group name is not found in the configuration
 	 * @throws MaxDepthExceededException   if the graph depth is greater than the maximum depth allowed
 	 */
 	@NotNull
-	private ServiceGroupConfig loadServiceGroupConfigJSON(@NotNull String name) throws JSONException, MaxDepthExceededException, GroupNotFoundException, CircularDependencyException, FileNotFoundException, ServiceNotFoundException {
+	private GroupConfig loadGroupConfigJSON(@NotNull String name) throws JSONException, MaxDepthExceededException,
+		GroupNotFoundException, CircularDependencyException, FileNotFoundException, ServiceNotFoundException {
 		JSONObject groupJSONConfig = getItemByNameOrAlias(name, rootNode.getJSONArray("groups"));
 		if (groupJSONConfig == null)
 			throw new GroupNotFoundException("\"" + name + "\" was not found in the groups array");
@@ -271,7 +306,7 @@ public class ConfigLoader {
 		// check dependencies are ok for this group
 		// this check is important because dependencies will be loaded recursively, so, this avoids infinite
 		// recursion
-		int max_depth = rootNode.has("maxDepth") ? rootNode.getInt("maxDepth") : 5;
+		int max_depth = rootNode.optInt("maxDepth", ConfigDefaults.MAX_DEPTH);
 		checkGroupDependencies(
 			groupJSONConfig.getString("name"),
 			rootNode.getJSONArray("groups"),
@@ -282,7 +317,8 @@ public class ConfigLoader {
 	}
 
 	@NotNull
-	private ServiceGroupConfig loadGroupDependencyConfigJSON(@NotNull String name) throws JSONException, GroupNotFoundException, FileNotFoundException, ServiceNotFoundException {
+	private GroupConfig loadGroupDependencyConfigJSON(@NotNull String name) throws JSONException,
+		GroupNotFoundException, FileNotFoundException, ServiceNotFoundException {
 		JSONObject groupJSONConfig = getItemByNameOrAlias(name, rootNode.getJSONArray("groups"));
 		if (groupJSONConfig == null) // if checkGroupDependencies is called before this, this will never happen
 			throw new GroupNotFoundException(
@@ -291,7 +327,7 @@ public class ConfigLoader {
 
 		// by now we know the current json node is the one the user wants
 		// load all its configuration
-		ServiceGroupConfig config = new ServiceGroupConfig();
+		GroupConfig config = new GroupConfig();
 		config.setName(groupJSONConfig.getString("name"));
 
 		// set other config properties
@@ -311,7 +347,7 @@ public class ConfigLoader {
 			List<String> dependencies = list2StringList(
 				groupJSONConfig.getJSONArray("dependencies").toList()
 			);
-			List<ServiceGroupConfig> groupsConfigs = new ArrayList<>(dependencies.size());
+			List<GroupConfig> groupsConfigs = new ArrayList<>(dependencies.size());
 			for (String dependencyName : dependencies)
 				groupsConfigs.add(loadGroupDependencyConfigJSON(dependencyName));
 

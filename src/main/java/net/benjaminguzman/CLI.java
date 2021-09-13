@@ -170,11 +170,23 @@ public class CLI implements Runnable {
 			return false;
 		}
 
+		if (cmd.startsWith("stop group") || cmd.startsWith("group stop")) {
+			String groupName = cmd.substring("group stop".length()).stripLeading();
+			stopGroupByName(groupName);
+			return false;
+		}
+
 		// deal with singleton service commands
 		if (cmd.startsWith("start")) {
-			// String serviceName = cmd.substring("start".length()).stripLeading();
-			// startServiceByName(serviceName);
+			String serviceName = cmd.substring("start".length()).stripLeading();
+			startServiceByName(serviceName);
 			return false;
+		}
+
+		// process print command
+		if (cmd.startsWith("graph")) {
+			String filename = cmd.substring("graph".length()).stripLeading();
+			//filename
 		}
 
 		System.out.println("Command \"" + cmd + "\" was not understood. Type \"help\" or \"h\" to print help");
@@ -183,12 +195,12 @@ public class CLI implements Runnable {
 	}
 
 	private void startGroupByName(@NotNull String groupName) {
-		ServiceGroup group = ServiceGroup.forName(groupName);
+		Group group = Group.forName(groupName);
 
 		if (group == null) // group has not been loaded. Load it
 			try {
 				assert ConfigLoader.getInstance() != null;
-				group = new ServiceGroup(
+				group = new Group(
 					ConfigLoader.getInstance().loadGroupConfig(groupName)
 				);
 			} catch (MaxDepthExceededException | GroupNotFoundException | CircularDependencyException | FileNotFoundException | ServiceNotFoundException e) {
@@ -210,18 +222,36 @@ public class CLI implements Runnable {
 			System.out.println("Group \"" + groupName + "\" is already running");
 	}
 
+	private void stopGroupByName(@NotNull String groupName) {
+		Group group = Group.forName(groupName);
+
+		if (group == null) { // group has not been loaded, there is nothing to do
+			System.out.println("Group " + groupName + " has not been loaded");
+			return;
+		}
+
+		// the group has been loaded
+		if (group.isUp()) // if the group is up, stop it
+			group.shutdownNow();
+		else
+			System.out.println("Group \"" + groupName + "\" has been loaded but it is not running");
+	}
+
 	private void startServiceByName(@NotNull String serviceName) {
 		Service service = Service.forName(serviceName);
-		throw new UnsupportedOperationException("You can't start singleton services with this version");
+		//throw new UnsupportedOperationException("You can't start singleton services with this version");
 
 		/*if (service == null) // service has not been loaded. Load it
 			try {
 				assert ConfigLoader.getInstance() != null;
+				ServiceConfig serviceConfig = ConfigLoader.getInstance().loadServiceConfig
+				(serviceName);
 				service = new Service(
-					ConfigLoader.getInstance().loadServiceConfig(serviceName),
+					serviceConfig,
 
 				);
-			} catch (MaxDepthExceededException | GroupNotFoundException | CircularDependencyException | FileNotFoundException | ServiceNotFoundException e) {
+			} catch (MaxDepthExceededException | GroupNotFoundException | CircularDependencyException |
+			FileNotFoundException | ServiceNotFoundException e) {
 				System.out.println(e.getMessage());
 				return;
 			} catch (InstanceAlreadyExistsException e) {
@@ -229,7 +259,7 @@ public class CLI implements Runnable {
 				return;
 			}
 
-		// by now, the group has been loaded
+		// by now, the service has been loaded
 		try {
 			service.start(); // start and block until it has started
 		} catch (InstanceAlreadyExistsException e) {
