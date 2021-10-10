@@ -24,10 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.management.InstanceAlreadyExistsException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -48,6 +45,11 @@ public class Service implements Runnable {
 	 */
 	@NotNull
 	private final static Map<String, Service> services = new HashMap<>();
+
+	/**
+	 * Contains the same values of {@link #services} but without any duplicates
+	 */
+	private final static HashSet<Service> uniqueServices = new HashSet<>();
 
 	/**
 	 * Service configuration
@@ -147,6 +149,7 @@ public class Service implements Runnable {
 
 		// register service in singleton map
 		services.put(config.getName(), this);
+		uniqueServices.add(this);
 		for (String alias : config.getAliases())
 			services.put(alias, this);
 
@@ -167,8 +170,8 @@ public class Service implements Runnable {
 	/**
 	 * @return a list of all loaded services
 	 */
-	public static Collection<Service> services() {
-		return services.values();
+	public static Collection<Service> getServices() {
+		return uniqueServices;
 	}
 
 	/**
@@ -216,14 +219,14 @@ public class Service implements Runnable {
 
 		// set the hooks to be executed when service notifies it has successfully started
 		Map<Pattern, Consumer<String>> startUpHooks = new HashMap<>();
-		if (hooks.get(ServiceStatus.STARTED) != null && !config.getStartedPatterns().isEmpty())
+		if (!config.getStartedPatterns().isEmpty())
 			config.getStartedPatterns().forEach(pattern -> {
 				startUpHooks.put(pattern, s -> changeStatusSync(ServiceStatus.STARTED));
 			});
 
 		// set the hooks to be executed when service notifies an error has happened
 		Map<Pattern, Consumer<String>> errorHooks = new HashMap<>();
-		if (hooks.get(ServiceStatus.ERROR) != null && !config.getErrorPatterns().isEmpty())
+		if (!config.getErrorPatterns().isEmpty())
 			config.getErrorPatterns().forEach(pattern -> {
 				errorHooks.put(pattern, s -> changeStatusSync(ServiceStatus.ERROR));
 			});
@@ -257,7 +260,7 @@ public class Service implements Runnable {
 		try (procStdout; procStderr) {
 			stdoutThread.join();
 			stderrThread.join();
-		} catch (InterruptedException ignored) {
+		} catch (InterruptedException e) {
 			// thread interruption is expected, e.g. when you request service stop
 			proc.destroy();
 
