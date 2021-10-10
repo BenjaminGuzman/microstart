@@ -18,6 +18,8 @@
 
 package net.benjaminguzman;
 
+import com.diogonunes.jcolor.Ansi;
+import com.diogonunes.jcolor.Attribute;
 import net.benjaminguzman.exceptions.CircularDependencyException;
 import net.benjaminguzman.exceptions.GroupNotFoundException;
 import net.benjaminguzman.exceptions.MaxDepthExceededException;
@@ -27,6 +29,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.management.InstanceAlreadyExistsException;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -184,9 +188,19 @@ public class CLI implements Runnable {
 		}
 
 		// process print command
-		if (cmd.startsWith("graph")) {
-			String filename = cmd.substring("graph".length()).stripLeading();
-			//filename
+		if (cmd.startsWith("print")) {
+			String filename = cmd.substring("print".length()).stripLeading();
+			try {
+				assert ConfigLoader.getInstance() != null;
+				printDot(filename, ConfigLoader.getInstance().load());
+			} catch (ServiceNotFoundException
+				| FileNotFoundException
+				| MaxDepthExceededException
+				| GroupNotFoundException
+				| CircularDependencyException e) {
+				LOGGER.log(Level.SEVERE, "Config file is invalid", e);
+			}
+			return false;
 		}
 
 		System.out.println("Command \"" + cmd + "\" was not understood. Type \"help\" or \"h\" to print help");
@@ -268,6 +282,25 @@ public class CLI implements Runnable {
 
 	}
 
+	private void printDot(@NotNull String filename, @NotNull Config config) {
+		if (filename.startsWith("\"")) // remove "" from the filename if they exist
+			filename = filename.substring(1, filename.length() - 1);
+
+		String dotCode = "";
+		try {
+			dotCode = new ConfigToDot(new ConfigToDot.Builder(config)).convert();
+			Files.writeString(Path.of(filename), dotCode);
+			System.out.println(
+				"Dot code has been written to " + filename
+					+ "\nRun " + Ansi.colorize("dot -Tsvg " + filename, Attribute.BOLD())
+					+ " to obtain a nice svg image"
+			);
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, "Couldn't save generated dot code into " + filename, e);
+			System.out.println("Generated dot code is:\n" + dotCode);
+		}
+	}
+
 	private void printHelp() {
 		String help = "CLI prompt statuses:\n" +
 			" - " + readySymbol + ": Service has started and can read commands\n" +
@@ -281,8 +314,12 @@ public class CLI implements Runnable {
 			" - (start|stop|restart) <service name>. Start, stop or restart a singleton service\n" +
 			" - status [<service name>]. Query the status of a particular service\n" +
 			"   or all services if service name is not provided\n" +
+			" - print <filename> Convert the configuration to dot (graphviz) code and write it into the " +
+			"specified filename\n" +
+			"   Useful to obtain an overview of microservices dependency graph\n" +
 			" - (quit|exit|q). Exit the application (all started processes will be stopped)\n" +
 			" - (help|h). Print this help\n" +
+			'\n' +
 			"You can input multiple commands if you separate them by '&'.\n" +
 			"Example: \"group start <group name> & status <group name>\"\n" +
 			"They'll execute sequentially";
