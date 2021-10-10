@@ -8,11 +8,11 @@ This improves developer experience because you'll no longer need to open multipl
 
 It is similar to docker compose, but these are the main differences:
 
-- This does not require a docker container to be built. Any command you run from command line can be run here
+- This does not require a docker container to be built. Any command you run from command line can be run by this program
 - It supports process groups and dependencies (see below)
 
 **It is intended to be used in development environment preferably**, since in production you have more pro stuff like
-docker and k8s.
+k8s.
 
 ## Concepts
 
@@ -103,17 +103,18 @@ You can write a JSON file containing the following configuration
 
 As you can see, each group has:
 
-- `name`: Name of the group. Can be used to start the service group.
+- `name`: **required**. Name of the group. Can be used to start the service group.
 - `aliases`: Aliases for the name. Can be used to start the service group.
-- `services`: List of services that should run with this group. **references services defined in the `services` array**
+- `services`: **required**. List of services that should run with this group. **references services defined in
+  the `services` array**
   (see below).
 - `dependencies`: List of groups that should be run before this group is run. The group will not run<sup>1</sup> unless
   its dependencies have been run and successfully notified they have started
 
-**It is allowed to have a group and a service with the same name (or aliases), but not 2 groups or services with the
-same name (or aliases)**
-
 <sup>1</sup> You can modify this behaviour with the `continueAfterError` key.
+
+**It is allowed to have a group and a service with the same name (or aliases), but not 2 groups or 2 services with the
+same name (or aliases)**
 
 ### Process / Service
 
@@ -254,9 +255,10 @@ which command to run, among other stuff. For example:
 
 As you can see, each group has:
 
-- `name`: Name of the group. Can be used to start the service or reference.
+- `name`: **required**. Name of the group. Can be used to start the service or reference it.
 - `aliases`: Aliases for the name. Can be used to start the service.
-- `start`: Command to run. If your OS allow it, you can specify multiple commands like `echo hello | less && echo bye`
+- `start`: **required**. Command to run. If your OS allow it, you can specify multiple commands
+  like `echo hello | less && echo bye`
 - `color`: Color to use when piping output from the process' stdin/stderr to microstart stdout. This allows you to
   identify which output comes from which service. Color will only be displayed if your terminal supports it
 - `workDir`: Working directory where the start command is going to be run.
@@ -278,8 +280,8 @@ java -jar microstart.jar
 With the following options
 
 - `-c/--config`: Path to configuration file. Default: `./microstart.json`
-- `-i/--input`: Initial input to process. This is just a shorthand so don't need to start the application and then enter
-  the command
+- `-i/--input`: Initial input to process. This is just a shorthand, so you don't need to start the application and then
+  enter the command
 
 ### Command line
 
