@@ -64,11 +64,6 @@ class ConfigToDotTest {
 	@Test
 	@DisplayName("Test conversion with indentChar=' ' and indentSize=4")
 	void convert4space() throws IOException {
-		System.out.println(new ConfigToDot(
-			new ConfigToDot.Builder(config)
-				.setIndentChar(' ')
-				.setIndentSize(4)
-		).convert());
 		new ConfigToDot(
 			new ConfigToDot.Builder(config)
 				.setIndentChar(' ')
