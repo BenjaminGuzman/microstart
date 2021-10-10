@@ -125,6 +125,27 @@ public class Microstart {
 					);
 				}
 			});
+
+			// also stop any singleton services
+			Service.getServices().forEach(service -> {
+				if (service.getProc() == null)
+					return;
+				service.getProc().destroy();
+				boolean graceful_shutdown = false;
+				try {
+					graceful_shutdown = service.getProc().waitFor(500, TimeUnit.MILLISECONDS);
+				} catch (InterruptedException ignored) {
+					service.getProc().destroyForcibly();
+				}
+
+				if (!graceful_shutdown) {
+					System.out.println(
+						"Process " + service.getConfig().getColorizedName()
+							+ " didn't shutdown gracefully, trying to destroy it forcibly"
+					);
+					service.getProc().destroyForcibly();
+				}
+			});
 		}
 	}
 
@@ -172,7 +193,7 @@ public class Microstart {
 	 *                 {@link Process#destroy()} will be used
 	 */
 	public static void destroyProcesses(boolean forcibly) {
-		Service.services().forEach(service -> {
+		Service.getServices().forEach(service -> {
 			Process proc = service.getProc();
 			if (proc != null && proc.isAlive()) // stop all processes that are alive
 				if (forcibly)
@@ -190,7 +211,7 @@ public class Microstart {
 	 * @see #destroyProcesses(boolean)
 	 */
 	public static void waitForProcesses() {
-		Service.services().forEach(service -> {
+		Service.getServices().forEach(service -> {
 			Process proc = service.getProc();
 			if (proc != null) { // stop all processes that are alive
 				try {

@@ -14,6 +14,10 @@ It is similar to docker compose, but these are the main differences:
 **It is intended to be used in development environment preferably**, since in production you have more pro stuff like
 k8s.
 
+## Features
+
+Section comming soon
+
 ## Concepts
 
 Note: **process** and **service** are used interchangeably here. This is because the main focus of the application is to
@@ -187,10 +191,7 @@ which command to run, among other stuff. For example:
       "startedPatterns": [
         "(service|server) is listening"
       ]
-    },
-    ...rest
-    of
-    services...
+    }
   ],
   "groups": [
     {
@@ -268,6 +269,9 @@ As you can see, each group has:
   process' **stderr**.
 
 **Aliases and names are case-sensitive**, that's why *Gateway* has an alias *gateway*
+
+**Pro tip**: Don't use `npm` as a `start` command because `npm` will spawn a child process and doesn't handle it very
+well, for instance, if you send a SIGTERM to the `npm` process, the child process won't be stopped
 
 ## Usage
 

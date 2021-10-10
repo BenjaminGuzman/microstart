@@ -32,6 +32,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.logging.Level;
@@ -187,6 +188,18 @@ public class CLI implements Runnable {
 			return false;
 		}
 
+		if (cmd.startsWith("stop")) {
+			String serviceName = cmd.substring("stop".length()).stripLeading();
+			stopServiceByName(serviceName);
+			return false;
+		}
+
+		if (cmd.startsWith("status")) {
+			String serviceName = cmd.substring("status".length()).stripLeading();
+			serviceStatusByName(serviceName);
+			return false;
+		}
+
 		// process print command
 		if (cmd.startsWith("print")) {
 			String filename = cmd.substring("print".length()).stripLeading();
@@ -253,19 +266,15 @@ public class CLI implements Runnable {
 
 	private void startServiceByName(@NotNull String serviceName) {
 		Service service = Service.forName(serviceName);
-		//throw new UnsupportedOperationException("You can't start singleton services with this version");
 
-		/*if (service == null) // service has not been loaded. Load it
+		if (service == null) // service has not been loaded. Load it
 			try {
 				assert ConfigLoader.getInstance() != null;
-				ServiceConfig serviceConfig = ConfigLoader.getInstance().loadServiceConfig
-				(serviceName);
-				service = new Service(
-					serviceConfig,
-
-				);
-			} catch (MaxDepthExceededException | GroupNotFoundException | CircularDependencyException |
-			FileNotFoundException | ServiceNotFoundException e) {
+				ServiceConfig serviceConfig =
+					ConfigLoader.getInstance().loadServiceConfig(serviceName);
+				service = new Service(serviceConfig, new HashMap<>(), (s, e) -> {});
+				System.out.println("Service " + serviceConfig.getColorizedName() + " loaded");
+			} catch (FileNotFoundException | ServiceNotFoundException e) {
 				System.out.println(e.getMessage());
 				return;
 			} catch (InstanceAlreadyExistsException e) {
@@ -274,12 +283,73 @@ public class CLI implements Runnable {
 			}
 
 		// by now, the service has been loaded
-		try {
-			service.start(); // start and block until it has started
-		} catch (InstanceAlreadyExistsException e) {
-			LOGGER.log(Level.SEVERE, "Programming error❗", e);
-		}*/
+		if (service.getStatus().isRunning()) {
+			System.out.println(
+				"Service " + service.getConfig().getColorizedName() + " can't be run now." +
+					" Current status: " + service.getStatus()
+			);
+			return;
+		}
 
+		System.out.println("Starting " + service.getConfig().getColorizedName() + " asynchronously...");
+		new ServiceThreadFactory().newThread(service).start();
+	}
+
+	private void stopServiceByName(@NotNull String serviceName) {
+		Service service = Service.forName(serviceName);
+
+		if (service == null) { // service has not been loaded, therefore it is not running
+			System.out.println("Service " + serviceName + " hasn't been loaded and it can't be stopped");
+			return;
+		}
+
+		if (service.getStatus() == ServiceStatus.STARTED) {
+			assert service.getProc() != null;
+			long pid = service.getProc().pid();
+			service.getProc().destroy();
+			System.out.println(
+				"Service " + service.getConfig().getColorizedName() + " with PID " + pid +
+					" has been requested to stop now"
+			);
+			return;
+		}
+
+		System.out.println(
+			"Service " + service.getConfig().getColorizedName() + " can't be requested to be stopped" +
+				" because it hasn't been started. Current status: " + service.getStatus()
+		);
+	}
+
+	private void serviceStatusByName(@NotNull String serviceName) {
+		if (serviceName.isBlank()) { // show status for all services
+			// maximum width for all service names
+			int max_width = Service.getServices().stream()
+				.map(service -> service.getConfig().getColorizedName())
+				.mapToInt(String::length)
+				.max()
+				.orElse(30);
+
+			// %-15s -> left aligned 15 char-width string
+			String format = "%-" + max_width + "s  %-10s\n";
+
+			Service.getServices().forEach(service -> System.out.printf(
+				format,
+				service.getConfig().getColorizedName(),
+				service.getStatus().toString()
+			));
+			return;
+		}
+
+		Service service = Service.forName(serviceName);
+
+		if (service == null) { // service has not been loaded, therefore it is not running
+			System.out.println("Service " + serviceName + " hasn't been loaded");
+			return;
+		}
+
+		System.out.println(
+			"Service " + service.getConfig().getColorizedName() + " status: " + service.getStatus()
+		);
 	}
 
 	private void printDot(@NotNull String filename, @NotNull Config config) {
@@ -310,8 +380,8 @@ public class CLI implements Runnable {
 			'\n' +
 			"Available commands:\n" +
 			" - (group start|start group) <group name>. Start a group service.\n" +
-			"   The group name is the one you defined in config file\n" +
-			" - (start|stop|restart) <service name>. Start, stop or restart a singleton service\n" +
+			"   The group name is the one you defined in the config file\n" +
+			" - (start|stop) <service name>. Start or stop a singleton service\n" +
 			" - status [<service name>]. Query the status of a particular service\n" +
 			"   or all services if service name is not provided\n" +
 			" - print <filename> Convert the configuration to dot (graphviz) code and write it into the " +
