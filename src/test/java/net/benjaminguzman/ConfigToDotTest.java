@@ -89,7 +89,7 @@ class ConfigToDotTest {
 		}
 	}
 
-	@Test
+	/*@Test
 	@DisplayName("Test conversion with indentChar='\\t' and indentSize=2")
 	void convert2tabs() throws IOException {
 		new ConfigToDot(
@@ -110,5 +110,5 @@ class ConfigToDotTest {
 			while (actual.read(actualBuff) != -1 && expected.read(expectedBuff) != -1)
 				assertArrayEquals(expectedBuff, actualBuff);
 		}
-	}
+	}*/
 }
