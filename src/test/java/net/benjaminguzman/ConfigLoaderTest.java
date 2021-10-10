@@ -123,7 +123,9 @@ class ConfigLoaderTest {
 	@Test
 	@DisplayName("Testing it loads ALL configuration")
 	void load() {
-		assertThrows(MaxDepthExceededException.class, () -> Objects.requireNonNull(ConfigLoader.getInstance())
-			.load());
+		assertThrows(
+			MaxDepthExceededException.class,
+			() -> Objects.requireNonNull(ConfigLoader.getInstance()).load()
+		);
 	}
 }

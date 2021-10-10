@@ -54,6 +54,7 @@ public class Microstart {
 				"under certain conditions.\n" +
 				"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>\n"
 		);
+		System.setProperty("java.util.logging.SimpleFormatter.format", "[%4$-7s] [%1$tF %1$tT] %5$s %n");
 
 		CommandLine cli = parseCLIArgs(args);
 		if (cli == null)
