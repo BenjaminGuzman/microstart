@@ -220,7 +220,7 @@ public class Group {
 		if (countDownTimes.getOrDefault(service, 0) > 0) {
 			LOGGER.info(
 				"Service " + service.getConfig().getColorizedName() +
-					" has notified again it has started. Ignoring that notification 🤷.\n" +
+					" has again notified it has started. Ignoring that notification.\n" +
 					"Total times it has notified this (excluding this occasion): " +
 					countDownTimes.get(service)
 			);
