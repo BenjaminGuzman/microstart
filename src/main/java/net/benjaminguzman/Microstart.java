@@ -56,6 +56,18 @@ public class Microstart {
 		);
 		System.setProperty("java.util.logging.SimpleFormatter.format", "[%4$-7s] [%1$tF %1$tT] %5$s %n");
 
+		// when jvm is shutting down, kill all its children processes.
+		// Recall this processes will be the ones started by running groups or singleton services.
+		// Killing all children recursively is good because this way it is ensured there are no remaining
+		// orphan/dangling processes that may have been started by other service, e.g.
+		// microstart -> process 1 (defined in config) -> process 2 -> process 3
+		// with this line of code process 3, process 2 and process 1 will be stopped
+		// instead of just stopping the direct child process 1, which would happen normally if jvm exits and no
+		// shutdown hook is configured
+		Runtime.getRuntime().addShutdownHook(new Thread(
+			() -> ProcessHandle.current().children().forEach(Microstart::killChildren)
+		));
+
 		CommandLine cli = parseCLIArgs(args);
 		if (cli == null)
 			return;
@@ -108,7 +120,7 @@ public class Microstart {
 		} catch (InstanceAlreadyExistsException e) {
 			LOGGER.log(Level.SEVERE, "Shouldn't instantiate CLI more than once!", e);
 		} finally { // the application is exiting due to breakage of the cli loop
-			// This won't execute if SIGINT is received, therefore it is convenient to ask
+			// This won't execute if SIGINT is received, therefore it is convenient to ask if
 			// this should be inside a shutdown hook?
 			// it seems the JVM successfully handles child process destruction when SIGINT is received
 			// so let's hope it is true for any architecture and 🤞 there are no dangling process after
@@ -123,27 +135,6 @@ public class Microstart {
 							+ group.getConfig().getName()
 							+ " couldn't be gracefully shut down"
 					);
-				}
-			});
-
-			// also stop any singleton services
-			Service.getServices().forEach(service -> {
-				if (service.getProc() == null)
-					return;
-				service.getProc().destroy();
-				boolean graceful_shutdown = false;
-				try {
-					graceful_shutdown = service.getProc().waitFor(500, TimeUnit.MILLISECONDS);
-				} catch (InterruptedException ignored) {
-					service.getProc().destroyForcibly();
-				}
-
-				if (!graceful_shutdown) {
-					System.out.println(
-						"Process " + service.getConfig().getColorizedName()
-							+ " didn't shutdown gracefully, trying to destroy it forcibly"
-					);
-					service.getProc().destroyForcibly();
 				}
 			});
 		}
@@ -187,44 +178,15 @@ public class Microstart {
 	}
 
 	/**
-	 * Tries to stop all running process that may have been run before
+	 * Kill all children processes for the given process
 	 *
-	 * @param forcibly if true, {@link Process#destroyForcibly()} will be used to destroy the process, if false,
-	 *                 {@link Process#destroy()} will be used
+	 * @param parentProc parent process whose children will be tried to be stopped
 	 */
-	public static void destroyProcesses(boolean forcibly) {
-		Service.getServices().forEach(service -> {
-			Process proc = service.getProc();
-			if (proc != null && proc.isAlive()) // stop all processes that are alive
-				if (forcibly)
-					proc.destroyForcibly();
-				else
-					proc.destroy();
-		});
-	}
+	public static void killChildren(@NotNull ProcessHandle parentProc) {
+		// kill all children
+		parentProc.children().forEach(Microstart::killChildren);
 
-	/**
-	 * Blocks until all processes have finished.
-	 * <p>
-	 * This is a complement to {@link #destroyProcesses(boolean)}. You may want to call that first
-	 *
-	 * @see #destroyProcesses(boolean)
-	 */
-	public static void waitForProcesses() {
-		Service.getServices().forEach(service -> {
-			Process proc = service.getProc();
-			if (proc != null) { // stop all processes that are alive
-				try {
-					proc.waitFor(5, TimeUnit.SECONDS);
-				} catch (InterruptedException e) {
-					LOGGER.log(
-						Level.WARNING,
-						"Exception produced while waiting for process in service " + service.getConfig()
-							.getColorizedName(),
-						e
-					);
-				}
-			}
-		});
+		// kill parent process
+		parentProc.destroy(); // should destroyForcibly() be used? no,
 	}
 }
