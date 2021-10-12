@@ -27,10 +27,12 @@ import org.everit.json.schema.ValidationException;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.yaml.snakeyaml.Yaml;
 
 import javax.management.InstanceAlreadyExistsException;
 import java.awt.*;
@@ -65,7 +67,26 @@ public class ConfigLoader {
 			throw new InstanceAlreadyExistsException(
 				"Cannot instantiate " + ConfigLoader.class.getName() + " more than once"
 			);
-		this.rootNode = new JSONObject(Files.readString(file.toPath()));
+
+		if (file.length() < 10)
+			LOGGER.warning(file.getName() + " has less than 10 bytes, that doesn't seem good");
+
+		if (file.getName().endsWith("json"))
+			this.rootNode = new JSONObject(Files.readString(file.toPath()));
+		else if (file.getName().endsWith("yaml") || file.getName().endsWith("yml")) {
+			// read is as yaml
+			Yaml yaml = new Yaml();
+			Map<String, Object> map = yaml.load(Files.readString(file.toPath()));
+
+			// convert it to json
+			this.rootNode = new JSONObject(map);
+		} else {
+			LOGGER.warning(
+				file.getName() + " doesn't have any of the following extensions: yaml, yml, json.\n" +
+					" I'll try to read it as JSON"
+			);
+			this.rootNode = new JSONObject(Files.readString(file.toPath()));
+		}
 
 		// validate the config file complies with the specification in schema.json
 		try (InputStream inputStream = getClass().getResourceAsStream("/resources/schema.json")) {
@@ -238,7 +259,12 @@ public class ConfigLoader {
 			config.setAliases(list2StringList(serviceJSONConfig.getJSONArray("aliases").toList()));
 
 		if (serviceJSONConfig.has("color")) {
-			Color color = Color.decode(serviceJSONConfig.getString("color"));
+			Color color;
+			if (serviceJSONConfig.get("color") instanceof String) // color is given as string
+				color = Color.decode(serviceJSONConfig.getString("color"));
+			else // color is given as an integer
+				color = new Color(serviceJSONConfig.getInt("color"));
+
 			config.setAsciiColor(TEXT_COLOR(color.getRed(), color.getGreen(), color.getBlue()));
 		}
 
@@ -431,5 +457,15 @@ public class ConfigLoader {
 			if (dependencies.isEmpty())
 				depth -= 2; // decrement by 2 to undo the first increment and to "go back" in the graph
 		}
+	}
+
+	@TestOnly
+	public static void deleteInstance() {
+		instance = null;
+	}
+
+	@TestOnly
+	public JSONObject getRoot() {
+		return rootNode;
 	}
 }

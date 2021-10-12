@@ -34,12 +34,12 @@ class GroupTest {
 	@BeforeAll
 	static void beforeAll() throws IOException, InstanceAlreadyExistsException {
 		if (ConfigLoader.getInstance() == null)
-			new ConfigLoader("src/test/test.json");
+			new ConfigLoader("src/test/resources/test.json");
 	}
 
 	@Test
 	void start() throws MaxDepthExceededException, ServiceNotFoundException, FileNotFoundException,
-		GroupNotFoundException, CircularDependencyException, InstanceAlreadyExistsException {
+		GroupNotFoundException, CircularDependencyException {
 		GroupConfig config = Objects.requireNonNull(ConfigLoader.getInstance()).loadGroupConfig("good group");
 		//ServiceGroup group = new ServiceGroup(config);
 		//group.start();
