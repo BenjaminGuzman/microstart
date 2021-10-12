@@ -30,8 +30,11 @@
                         }
                     },
                     "color": {
-                        "type": "string",
-                        "description": "Color in either hex (prefix 0x), octal (prefix 0) or decimal format. If your terminal supports that text color, the service name will have it"
+                        "type": [
+                            "string",
+                            "integer"
+                        ],
+                        "description": "Color in either hex (prefix 0x), octal (prefix 0) or decimal format. If your terminal supports that text color, the service name will have such color"
                     },
                     "workDir": {
                         "type": "string",

@@ -43,7 +43,7 @@ public class Microstart {
 	 */
 	public static boolean CONTINUE_AFTER_ERROR = true;
 
-	public static final String DEFAULT_CONFIG_FILE = "microstart.json";
+	public static final String DEFAULT_CONFIG_FILE = "microstart.yaml";
 
 	public static void main(String... args) {
 		System.out.println(
