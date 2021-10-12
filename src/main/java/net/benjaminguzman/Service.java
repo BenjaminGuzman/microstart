@@ -331,6 +331,16 @@ public class Service implements Runnable {
 	}
 
 	/**
+	 * Tries to stop the current running process (if any) and all its children processes
+	 */
+	public void destroyProc() {
+		if (proc == null)
+			return;
+
+		Microstart.destroyChildrenProcesses(proc.toHandle());
+	}
+
+	/**
 	 * Runs the hook (if any) configured to run at the given service status
 	 *
 	 * @param status the service status

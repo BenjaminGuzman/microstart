@@ -95,6 +95,25 @@ public enum ServiceStatus {
 	 */
 	@Override
 	public String toString() {
-		return this.name().charAt(0) + this.name().substring(1).toLowerCase();
+		String name = this.name().charAt(0) + this.name().substring(1).toLowerCase() + " ";
+		switch (this) {
+			case STARTING:
+				name += "🏃";
+				break;
+			case STARTED:
+				name += "🏁";
+				break;
+			case STOPPING:
+				name += "✋";
+				break;
+			case STOPPED:
+				name += "🔴";
+				break;
+			case ERROR:
+				name += "🥵";
+				break;
+		}
+
+		return name;
 	}
 }

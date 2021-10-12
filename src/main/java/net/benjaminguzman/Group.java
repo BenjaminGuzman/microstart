@@ -197,11 +197,18 @@ public class Group {
 	}
 
 	/**
+	 * Tries to stop all processes started by the services that were run and
+	 * <p>
 	 * Calls {@link ExecutorService#shutdownNow()} on the executor service used to run services inside this group
 	 *
 	 * @return same as {@link ExecutorService#shutdownNow()}
 	 */
 	public List<Runnable> shutdownNow() {
+		for (ServiceConfig serviceConfig : config.getServicesConfigs()) {
+			Service service = Service.forName(serviceConfig.getName());
+			assert service != null;
+			service.destroyProc();
+		}
 		return executorService.shutdownNow();
 	}
 
