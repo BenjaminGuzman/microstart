@@ -1,3 +1,23 @@
-digraph Example {
-    "Landing page" -> {Users Crypto} -> "Search engine"
+digraph {
+    compound=true;
+    rank=same;
+    ranksep=1;
+    subgraph cluster_1661228684 {
+        label="Frontend services";
+        color=blue;
+        "Landing page1661228684" [label=<Landing page<br/><font point-size="10">landing</font>>];
+    }
+    subgraph cluster_866315194 {
+        label="Search Engine";
+        color=blue;
+        "Search engine866315194" [label=<Search engine<br/><font point-size="10">search, google</font>>];
+    }
+    subgraph cluster_135615626 {
+        label="Backend services";
+        color=blue;
+        "Crypto135615626" [label=<Crypto<br/><font point-size="10">crypto</font>>];
+        "Users135615626" [label=<Users<br/><font point-size="10">rpc-users, users</font>>];
+    }
+    "Crypto135615626" -> "Landing page1661228684" [lhead=cluster_1661228684, ltail=cluster_135615626];
+    "Search engine866315194" -> "Crypto135615626" [lhead=cluster_135615626, ltail=cluster_866315194];
 }
