@@ -304,13 +304,7 @@ public class CLI implements Runnable {
 		}
 
 		if (service.getStatus() == ServiceStatus.STARTED) {
-			assert service.getProc() != null;
-			long pid = service.getProc().pid();
-			service.getProc().destroy();
-			System.out.println(
-				"Service " + service.getConfig().getColorizedName() + " with PID " + pid +
-					" has been requested to stop now"
-			);
+			service.destroyProc();
 			return;
 		}
 
@@ -347,9 +341,7 @@ public class CLI implements Runnable {
 			return;
 		}
 
-		System.out.println(
-			"Service " + service.getConfig().getColorizedName() + " status: " + service.getStatus()
-		);
+		System.out.println(service.getConfig().getColorizedName() + "  " + service.getStatus());
 	}
 
 	private void printDot(@NotNull String filename, @NotNull Config config) {

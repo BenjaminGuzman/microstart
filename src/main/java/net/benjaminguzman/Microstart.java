@@ -65,7 +65,7 @@ public class Microstart {
 		// instead of just stopping the direct child process 1, which would happen normally if jvm exits and no
 		// shutdown hook is configured
 		Runtime.getRuntime().addShutdownHook(new Thread(
-			() -> ProcessHandle.current().children().forEach(Microstart::killChildren)
+			() -> ProcessHandle.current().children().forEach(Microstart::destroyChildrenProcesses)
 		));
 
 		CommandLine cli = parseCLIArgs(args);
@@ -178,15 +178,20 @@ public class Microstart {
 	}
 
 	/**
-	 * Kill all children processes for the given process
+	 * Stop all children processes for the given process recursively
+	 * <p>
+	 * Once all children have been stopped, parent process is also stopped
 	 *
 	 * @param parentProc parent process whose children will be tried to be stopped
 	 */
-	public static void killChildren(@NotNull ProcessHandle parentProc) {
-		// kill all children
-		parentProc.children().forEach(Microstart::killChildren);
+	public static void destroyChildrenProcesses(@NotNull ProcessHandle parentProc) {
+		// stop all children
+		parentProc.children().forEach(Microstart::destroyChildrenProcesses);
 
-		// kill parent process
-		parentProc.destroy(); // should destroyForcibly() be used? no,
+		// stop parent process
+		parentProc.destroy();
+		// should destroyForcibly() be used? let's hope the user knows what he/she is doing and there is no
+		// need to use destroyForcibly() which will send SIGKILL or something similar to the process,
+		// which is no good because process won't clean resources or handle shutdown hooks
 	}
 }
