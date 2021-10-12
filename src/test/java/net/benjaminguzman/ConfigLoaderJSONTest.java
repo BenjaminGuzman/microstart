@@ -35,11 +35,12 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ConfigLoaderTest {
+class ConfigLoaderJSONTest {
 	@BeforeAll
 	static void beforeAll() throws IOException, InstanceAlreadyExistsException {
-		if (ConfigLoader.getInstance() == null)
-			new ConfigLoader("src/test/test.json");
+		if (ConfigLoader.getInstance() != null)
+			ConfigLoader.deleteInstance();
+		new ConfigLoader("src/test/resources/test.json");
 	}
 
 	@Test

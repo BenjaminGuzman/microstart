@@ -10,6 +10,7 @@ It is similar to docker compose, but these are the main differences:
 
 - This does not require a docker container to be built. Any command you run from command line can be run by this program
 - It supports process groups and dependencies (see below)
+- Can generate [dot code](https://graphviz.org/doc/info/lang.html) based on configuration
 
 **It is intended to be used in development environment preferably**, since in production you have more pro stuff like
 k8s.
@@ -26,7 +27,8 @@ Here is a small demonstration
 
 ![Example](./microstart-example.gif)
 
-The video runs with the configuration file [example.json](./example.json)
+**It can handle both JSON and YAML configuration**, configuration file used in the GIF is [example.json](./example.json)
+or [example.yml](./example.yml).
 
 Notice how **Search engine** service is run before anything else, then both **users** and **crypto** services run
 concurrently, and, after both have notified successful startup, **Landing page** is started.
@@ -55,71 +57,52 @@ Then, we can define 4 groups:
 
 Group 4 depends on group 3, which in turn depends on group 2, which in turn depends on group 1.
 
-You can write a JSON file containing the following configuration
+You can write a **YAML** or **JSON** file containing the following configuration
 
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/BenjaminGuzman/microstart/main/src/main/resources/schema.json",
-  "services": [],
-  "groups": [
-    {
-      "name": "Frontend",
-      "aliases": [
-        "frontend",
-        "front"
-      ],
-      "services": [
-        "angular",
-        "android-client",
-        "ios-client"
-      ],
-      "dependencies": [
-        "gateway"
-      ]
-    },
-    {
-      "name": "Gateway",
-      "aliases": [
-        "gate",
-        "gateway"
-      ],
-      "services": [
-        "gateway"
-      ],
-      "dependencies": [
-        "microservices"
-      ]
-    },
-    {
-      "name": "Microservices",
-      "aliases": [
-        "microservices"
-      ],
-      "services": [
-        "users",
-        "login",
-        "catalogs"
-      ],
-      "dependencies": [
-        "databases"
-      ]
-    },
-    {
-      "name": "Databases",
-      "aliases": [
-        "databases",
-        "db",
-        "dbs"
-      ],
-      "services": [
-        "solr",
-        "redis",
-        "postgres"
-      ]
-    }
-  ],
-  "continueAfterError": true
-}
+```yaml
+services: [ ]
+groups:
+  - name: Frontend
+    aliases:
+      - frontend
+      - front
+    services:
+      - angular
+      - android-client
+      - ios-client
+    dependencies:
+      - gateway
+
+  - name: Gateway
+    aliases:
+      - gate
+      - gateway
+    services:
+      - gateway
+    dependencies:
+      - microservices
+
+  - name: Microservices
+    aliases:
+      - microservices
+    services:
+      - users
+      - login
+      - catalogs
+    dependencies:
+      - databases
+
+  - name: Databases
+    aliases:
+      - databases
+      - db
+      - dbs
+    services:
+      - solr
+      - redis
+      - postgres
+
+continueAfterError: true
 ```
 
 As you can see, each group has:
@@ -142,133 +125,97 @@ same name (or aliases)**
 As said before, each group runs a set of microservices (actually processes), and the key `services` is where you define
 which command to run, among other stuff. For example:
 
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/BenjaminGuzman/microstart/main/src/main/resources/schema.json",
-  "services": [
-    {
-      "name": "Web App",
-      "aliases": [
-        "web-app",
-        "angular"
-      ],
-      "start": "npm run start",
-      "color": "0xff0000",
-      "workDir": "super-project/frontend/web",
-      "startedPatterns": [
-        "(service|server) is listening on http(s):\/\/"
-      ],
-      "errorPatterns": [
-        "Error (happened|occurred|in)"
-      ]
-    },
-    {
-      "name": "Android App",
-      "aliases": [
-        "android-app",
-        "android-client"
-      ],
-      "start": "echo Starting android client... Done.",
-      "color": "0x00ff00",
-      "workDir": "super-project/frontend/android",
-      "startedPatterns": [
-        "done"
-      ]
-    },
-    {
-      "name": "IOS App",
-      "aliases": [
-        "ios-app",
-        "ios-client"
-      ],
-      "start": "echo Starting ios client... Done.",
-      "workDir": "super-project/frontend/ios",
-      "startedPatterns": [
-        "done"
-      ]
-    },
-    {
-      "name": "Gateway",
-      "aliases": [
-        "gateway"
-      ],
-      "start": "echo Starting gateway... Gateway is up and running.",
-      "workDir": "super-project/frontend/android",
-      "startedPatterns": [
-        "is up and running"
-      ]
-    },
-    {
-      "name": "Users",
-      "aliases": [
-        "users"
-      ],
-      "start": "node main.js",
-      "workDir": "super-project/backend/users",
-      "startedPatterns": [
-        "(service|server) is listening"
-      ]
-    }
-  ],
-  "groups": [
-    {
-      "name": "Frontend",
-      "aliases": [
-        "frontend",
-        "front"
-      ],
-      "services": [
-        "angular",
-        "android-client",
-        "ios-client"
-      ],
-      "dependencies": [
-        "gateway"
-      ]
-    },
-    {
-      "name": "Gateway",
-      "aliases": [
-        "gate",
-        "gateway"
-      ],
-      "services": [
-        "gateway"
-      ],
-      "dependencies": [
-        "microservices"
-      ]
-    },
-    {
-      "name": "Microservices",
-      "aliases": [
-        "microservices"
-      ],
-      "services": [
-        "users",
-        "login",
-        "catalogs"
-      ],
-      "dependencies": [
-        "databases"
-      ]
-    },
-    {
-      "name": "Databases",
-      "aliases": [
-        "databases",
-        "db",
-        "dbs"
-      ],
-      "services": [
-        "solr",
-        "redis",
-        "postgres"
-      ]
-    }
-  ],
-  "continueAfterError": true
-}
+```yaml
+services:
+  - name: Web App
+    aliases:
+      - web-app
+      - angular
+    start: npm run start
+    color: 0xff0000
+    workDir: super-project/frontend/web
+    startedPatterns:
+      - '(service|server) is listening on http(s)://'
+    errorPatterns:
+      - Error (happened|occurred|in)
+
+  - name: Android App
+    aliases:
+      - android-app
+      - android-client
+    start: echo Starting android client... Done.
+    color: 0x00ff00
+    workDir: super-project/frontend/android
+    startedPatterns:
+      - done
+
+  - name: IOS App
+    aliases:
+      - ios-app
+      - ios-client
+    start: echo Starting ios client... Done.
+    workDir: super-project/frontend/ios
+    startedPatterns:
+      - done
+
+  - name: Gateway
+    aliases:
+      - gateway
+    start: echo Starting gateway... Gateway is up and running.
+    workDir: super-project/frontend/android
+    startedPatterns:
+      - is up and running
+
+  - name: Users
+    aliases:
+      - users
+    start: node main.js
+    workDir: super-project/backend/users
+    startedPatterns:
+      - (service|server) is listening
+
+groups:
+  - name: Frontend
+    aliases:
+      - frontend
+      - front
+    services:
+      - angular
+      - android-client
+      - ios-client
+    dependencies:
+      - gateway
+
+  - name: Gateway
+    aliases:
+      - gate
+      - gateway
+    services:
+      - gateway
+    dependencies:
+      - microservices
+
+  - name: Microservices
+    aliases:
+      - microservices
+    services:
+      - users
+      - login
+      - catalogs
+    dependencies:
+      - databases
+
+  - name: Databases
+    aliases:
+      - databases
+      - db
+      - dbs
+    services:
+      - solr
+      - redis
+      - postgres
+
+continueAfterError: true
 ```
 
 As you can see, each group has:
@@ -280,16 +227,20 @@ As you can see, each group has:
 - `color`: Color to use when piping output from the process' stdin/stderr to microstart stdout. This allows you to
   identify which output comes from which service. Color will only be displayed if your terminal supports it
 - `workDir`: Working directory where the start command is going to be run.
-- `startedPatterns`: List of patterns that will identify the service has started. These patterns are looked in the
-  process' **stdout**
-- `errorPatterns`: List of patterns that will identify the service failed to start. These patterns are looked in the
-  process' **stderr**.
+- `startedPatterns`: List of patterns ([RegEx](https://docs.oracle.com/javase/tutorial/essential/regex/)) that will
+  identify the service has started. These patterns are looked in the process' **stdout**
+- `errorPatterns`: List of patterns ([RegEx](https://docs.oracle.com/javase/tutorial/essential/regex/)) that will
+  identify the service failed to start. These patterns are looked in the process' **stderr**.
 
 **Aliases and names are case-sensitive**, that's why *Gateway* has an alias *gateway*
 
+## YAML/JSON config properties
+
+For all available JSON/YAML properties, description and constraints see [schema.json](src/main/resources/schema.json)
+
 ## Usage
 
-After you've defined you json configuration, you can run the application with
+After you've defined your json/yaml configuration, you can run the application with
 
 ```shell
 java -jar microstart.jar
@@ -297,7 +248,7 @@ java -jar microstart.jar
 
 With the following options
 
-- `-c/--config`: Path to configuration file. Default: `./microstart.json`
+- `-c/--config`: Path to configuration file. Default: `microstart.yaml`
 - `-i/--input`: Initial input to process. This is just a shorthand, so you don't need to start the application and then
   enter the command
 
@@ -313,12 +264,13 @@ Check [Projects](https://github.com/BenjaminGuzman/microstart/projects) tab
 
 ### Libraries used
 
-- [Apache Commons CLI](https://commons.apache.org/proper/commons-cli/)
-- [JColor](https://github.com/dialex/JColor)
-- [Jetbrains Annotations](https://www.jetbrains.com/help/idea/annotating-source-code.html)
-- [JUnit 5](https://junit.org/junit5/)
-- [JSON parser](https://mvnrepository.com/artifact/org.json/json)
-- [JSON schema validator](https://github.com/everit-org/json-schema/)
+- [Apache Commons CLI](https://commons.apache.org/proper/commons-cli/): Parse CLI args
+- [JColor](https://github.com/dialex/JColor): Give color and style to text
+- [Jetbrains Annotations](https://www.jetbrains.com/help/idea/annotating-source-code.html): Better code documentation
+- [JUnit 5](https://junit.org/junit5/): Test framework
+- [JSON parser](https://mvnrepository.com/artifact/org.json/json): Parse JSON
+- [JSON schema validator](https://github.com/everit-org/json-schema/): Validate JSON complies with a defined schema
+- [Snake YAML](https://bitbucket.org/asomov/snakeyaml/src): Convert from YAML (to `Map<String, Object>`) to JSON
 
 ## License
 
