@@ -14,9 +14,26 @@ It is similar to docker compose, but these are the main differences:
 **It is intended to be used in development environment preferably**, since in production you have more pro stuff like
 k8s.
 
-## Features
+## Feature overview
 
-Section comming soon
+- Start **group processes** defined in configuration
+- Configure dependencies in order to **start a process after** another has notified **successful startup**
+- Start **single processes** defined in configuration
+- Generate [**dot code**](https://graphviz.org/doc/info/lang.html) from configuration to get an overview of the
+  dependency graph between microservices for your application
+
+Here is a small demonstration
+
+![Example](./microstart-example.gif)
+
+The video runs with the configuration file [example.json](./example.json)
+
+Notice how **Search engine** service is run before anything else, then both **users** and **crypto** services run
+concurrently, and, after both have notified successful startup, **Landing page** is started.
+
+Generated svg file shown in the GIF is the following
+
+![Dependency graph for example](./example.svg)
 
 ## Concepts
 
@@ -270,9 +287,6 @@ As you can see, each group has:
 
 **Aliases and names are case-sensitive**, that's why *Gateway* has an alias *gateway*
 
-**Pro tip**: Don't use `npm` as a `start` command because `npm` will spawn a child process and doesn't handle it very
-well, for instance, if you send a SIGTERM to the `npm` process, the child process won't be stopped
-
 ## Usage
 
 After you've defined you json configuration, you can run the application with
@@ -290,19 +304,6 @@ With the following options
 ### Command line
 
 When you start the application you'll see some help, so you can use it, it's very simple.
-
-Here is a small demonstration of how to use it.
-
-![Example](./microstart-example.gif)
-
-The video runs with the configuration file [example.json](./example.json)
-
-Notice how **Search engine** service is run before anything else, then both **users** and **crypto** services run
-concurrently, and finally **Landing page** is started.
-
-The dependency graph for the example.json looks like this
-
-![Dependency graph for example](./example.svg)
 
 ## TODO's
 

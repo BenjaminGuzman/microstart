@@ -19,31 +19,59 @@
         {
             "name": "Users",
             "start": "echo \"Loading service...\" && sleep 1 && echo \"Config loaded\" && sleep 1 && echo \"RPC server is listening on port 1111\"",
-            "aliases": ["rpc-users", "users"],
+            "aliases": [
+                "rpc-users",
+                "users"
+            ],
             "color": "0xff00ff",
-            "startedPatterns": ["(Service|Server) is listening"]
+            "startedPatterns": [
+                "(Service|Server) is listening"
+            ],
+            "errorPatterns": [
+                "error"
+            ]
         },
         {
             "name": "Crypto",
-            "aliases": ["crypto"],
+            "aliases": [
+                "crypto"
+            ],
             "start": "echo \"...\" && sleep 1 && echo \"Done.\"",
             "color": "0x0000ff",
-            "startedPatterns": ["done"]
+            "startedPatterns": [
+                "done"
+            ],
+            "errorPatterns": [
+                "error"
+            ]
         },
         {
             "name": "Landing page",
-            "aliases": ["landing"],
+            "aliases": [
+                "landing"
+            ],
             "start": "sleep 5 && echo \"Compilation finished.\"",
             "color": "0xf0f0f0",
-            "startedPatterns": ["Compilation finished"]
+            "startedPatterns": [
+                "Compilation finished"
+            ],
+            "errorPatterns": [
+                "error"
+            ]
         }
     ],
     "groups": [
         {
             "name": "Frontend services",
-            "aliases": ["frontend"],
-            "services": ["landing"],
-            "dependencies": ["backend"]
+            "aliases": [
+                "frontend"
+            ],
+            "services": [
+                "landing"
+            ],
+            "dependencies": [
+                "backend"
+            ]
         },
         {
             "name": "Backend services",
