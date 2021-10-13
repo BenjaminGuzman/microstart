@@ -242,12 +242,12 @@ public class Group {
 	private void onServiceError(Service service, ServiceStatus error) {
 		LOGGER.severe(
 			"🔥 Error has been produced inside " + service.getConfig().getColorizedName() + " service 🔥\n"
-				+ (Microstart.CONTINUE_AFTER_ERROR
+				+ (Microstart.IGNORE_ERRORS
 				? "💥 Services will continue execution 💥"
 				: "Next service group in the graph will not be executed")
 		);
 
-		if (Microstart.CONTINUE_AFTER_ERROR) {
+		if (Microstart.IGNORE_ERRORS) {
 			servicesLatch.countDown();
 			countDownTimes.put(service, 1);
 		}

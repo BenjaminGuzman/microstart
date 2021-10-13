@@ -18,9 +18,10 @@
 
 package net.benjaminguzman;
 
-import com.diogonunes.jcolor.Attribute;
 import org.jetbrains.annotations.NotNull;
+import picocli.CommandLine;
 
+import java.awt.*;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -28,19 +29,22 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static com.diogonunes.jcolor.Ansi.colorize;
-
 /**
  * Wrapper class for all the configurations needed to run a microservice
  */
 public class ServiceConfig {
 	/**
+	 * Multiply a 256 RGB color component by this factor to obtain it in scale from 0 to 5
+	 */
+	public static float COLOR_NORM_FACTOR = 5f / 256;
+
+	/**
 	 * Service name
-	 *
+	 * <p>
 	 * It is the name that will be printed to stdout
-	 *
+	 * <p>
 	 * It should be unique throughout the whole application
-	 *
+	 * <p>
 	 * {@link Service} ensures that uniqueness
 	 */
 	@NotNull
@@ -48,7 +52,7 @@ public class ServiceConfig {
 
 	/**
 	 * Working directory for the service.
-	 *
+	 * <p>
 	 * Used when starting the service with {@link #startCmd}
 	 */
 	@NotNull
@@ -64,18 +68,18 @@ public class ServiceConfig {
 	private List<String> aliases = Collections.emptyList();
 
 	/**
-	 * ASCII color
+	 * This color will be used to colorize the service name
 	 */
 	@NotNull
-	private Attribute asciiColor = Attribute.WHITE_TEXT();
+	private Color color = Color.WHITE;
 
 	@NotNull
 	private String[] startCmd = {"npm", "run", "start"};
 
 	@NotNull
-	private String colorizedName = asciiColor + name + "\033[0m";
+	private String colorizedName = CommandLine.Help.Ansi.ON.string("@|white " + name + "|@");
 
-	private String colorizedErrorName = "\033[41mERROR " + colorizedName;
+	private String colorizedErrorName = CommandLine.Help.Ansi.ON.string("@|red,blink,bold " + name + "|@");
 
 	/**
 	 * @return service name used to identify unequivocally the service within the application
@@ -111,9 +115,10 @@ public class ServiceConfig {
 
 	/**
 	 * Get the list of patterns to indicate the service has started (is up)
-	 *
+	 * <p>
 	 * If the text inside service (process) stdout matches one of these patterns, service will be considered to
 	 * have been started
+	 *
 	 * @return the list of patterns
 	 * @see #setStartedPatterns(List)
 	 */
@@ -132,9 +137,10 @@ public class ServiceConfig {
 
 	/**
 	 * Get the list of patterns to indicate an error occurred within the service
-	 *
+	 * <p>
 	 * If the text inside service (process) stdout matches one of these patterns, an error will be considered to
 	 * have happened
+	 *
 	 * @return the list of patterns
 	 * @see #setErrorPatterns(List)
 	 */
@@ -153,7 +159,7 @@ public class ServiceConfig {
 
 	/**
 	 * Get the aliases for this service name
-	 *
+	 * <p>
 	 * Unlike service name, these aliases may not be unique throughout the application
 	 *
 	 * @see #getName()
@@ -171,22 +177,22 @@ public class ServiceConfig {
 		return this;
 	}
 
-	public ServiceConfig setAsciiColor(Attribute asciiColor) {
-		this.asciiColor = asciiColor;
+	public ServiceConfig setColor(@NotNull Color color) {
+		this.color = color;
 		this.setColorizedName();
 		return this;
 	}
 
 	/**
 	 * Get the start command (with arguments)
-	 *
+	 * <p>
 	 * Some start commands may be dependent on the {@link #workingDirectory}
 	 * (for example "npm", "run", "start" won't work if working directory is not right)
 	 *
-	 * @see #setStartCmd(String)
 	 * @return the command to execute in order to start the service. It'll be system dependent, for example, in
 	 * windows platforms it may return {"cmd", "/c", real command}. You can pass this to
 	 * {@link ProcessBuilder#command(String...)}
+	 * @see #setStartCmd(String)
 	 */
 	public String[] getStartCmd() {
 		return startCmd;
@@ -206,9 +212,8 @@ public class ServiceConfig {
 	}
 
 	/**
-	 * Same as {@link #getName()} but with {@link #asciiColor} at the beginning and
-	 * "\033[0m" (reset ASCII sequence) at the end
-	 *
+	 * Same as {@link #getName()} but with colorized with ANSI scape sequences
+	 * <p>
 	 * You can safely print this to stdout
 	 */
 	@NotNull
@@ -218,7 +223,7 @@ public class ServiceConfig {
 
 	/**
 	 * Same as {@link #getColorizedName()} but with special format to indicate an error has happened
-	 *
+	 * <p>
 	 * You can safely print this to stdout
 	 */
 	@NotNull
@@ -230,12 +235,21 @@ public class ServiceConfig {
 	 * Set the colorized name
 	 */
 	private void setColorizedName() {
-		colorizedName = colorize(name, asciiColor);
+		// normalized rgb components in the scale 0 - 5
+		// https://picocli.info/#_ansi_colors_and_styles
+		int[] rgbNorm = {
+			Math.round(COLOR_NORM_FACTOR * color.getRed()),
+			Math.round(COLOR_NORM_FACTOR * color.getGreen()),
+			Math.round(COLOR_NORM_FACTOR * color.getBlue())
+		};
+
+		String normalizedColor = "fg(" + rgbNorm[0] + ";" + rgbNorm[1] + ";" + rgbNorm[2] + ")";
+		colorizedName = CommandLine.Help.Ansi.ON.string("@|" + normalizedColor + " " + name + "|@");
 		setColorizedErrorName();
 	}
 
 	private void setColorizedErrorName() {
-		colorizedErrorName = colorize(name, Attribute.SLOW_BLINK(), Attribute.RED_TEXT());
+		colorizedErrorName = CommandLine.Help.Ansi.ON.string("@|red,blink,bold " + name + "|@");
 	}
 
 	@Override
@@ -260,7 +274,7 @@ public class ServiceConfig {
 			", startedPatterns=" + startedPatterns +
 			", errorPatterns=" + errorPatterns +
 			", aliases=" + aliases +
-			", asciiColor='" + asciiColor + '\'' +
+			", color=" + color +
 			", startCmd=" + Arrays.toString(startCmd) +
 			", colorizedName='" + colorizedName + '\'' +
 			", colorizedErrorName='" + colorizedErrorName + '\'' +
