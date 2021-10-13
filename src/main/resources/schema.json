@@ -34,7 +34,7 @@
                             "string",
                             "integer"
                         ],
-                        "description": "Color in either hex (prefix 0x), octal (prefix 0) or decimal format. If your terminal supports that text color, the service name will have such color"
+                        "description": "Color in either hex (prefix 0x), octal (prefix 0) or decimal format. It will be normalized to one of the 216 colors in the ANSI palette https://en.wikipedia.org/wiki/ANSI_escape_code#Colors"
                     },
                     "workDir": {
                         "type": "string",
@@ -103,9 +103,9 @@
             "minimum": 1,
             "description": "Maximum depth in the dependency graph. If it is detected a group has a dependency graph whose depth exceeds this maximum, an exception will be produced (and notified to user). Root node has depth=1"
         },
-        "continueAfterError": {
+        "ignoreErrors": {
             "type": "boolean",
-            "default": true
+            "default": false
         }
     }
 }

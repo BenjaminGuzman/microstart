@@ -18,14 +18,13 @@
 
 package net.benjaminguzman;
 
-import com.diogonunes.jcolor.Ansi;
-import com.diogonunes.jcolor.Attribute;
 import net.benjaminguzman.exceptions.CircularDependencyException;
 import net.benjaminguzman.exceptions.GroupNotFoundException;
 import net.benjaminguzman.exceptions.MaxDepthExceededException;
 import net.benjaminguzman.exceptions.ServiceNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import picocli.CommandLine;
 
 import javax.management.InstanceAlreadyExistsException;
 import java.io.*;
@@ -57,22 +56,19 @@ public class CLI implements Runnable {
 	 * {@code start editor}
 	 */
 	private final Queue<String> cmdsQueue = new LinkedList<>();
-
+	private final String waitingSymbol = "⏳";
+	private final String readySymbol = "✔";
+	private final String byeSymbol = "👋";
+	private final String cmdSeparator = "&";
+	private final PromptOutputStream customStdout = new PromptOutputStream(System.out)
+		.setPrompt(">>> ")
+		.setStatusIcon(waitingSymbol);
 	/**
 	 * Line with the initial commands. This is, the commands to be executed first, before reading directly from
 	 * stdin
 	 */
 	@Nullable
 	private String initialLineInput = null;
-
-	private final String waitingSymbol = "⏳";
-	private final String readySymbol = "✔";
-	private final String byeSymbol = "👋";
-	private final String cmdSeparator = "&";
-
-	private final PromptOutputStream customStdout = new PromptOutputStream(System.out)
-		.setPrompt(">>> ")
-		.setStatusIcon(waitingSymbol);
 
 	public CLI() throws InstanceAlreadyExistsException {
 		if (instantiated)
@@ -162,7 +158,9 @@ public class CLI implements Runnable {
 			case "h":
 			case "help":
 				printHelp();
-			return false;
+				return false;
+			case "":
+				return false;
 		}
 		System.out.println("Processing command: \"" + cmd + "\"");
 
@@ -316,6 +314,11 @@ public class CLI implements Runnable {
 
 	private void serviceStatusByName(@NotNull String serviceName) {
 		if (serviceName.isBlank()) { // show status for all services
+			if (Service.getServices().isEmpty()) {
+				System.out.println("No service has been loaded");
+				return;
+			}
+
 			// maximum width for all service names
 			int max_width = Service.getServices().stream()
 				.map(service -> service.getConfig().getColorizedName())
@@ -329,7 +332,7 @@ public class CLI implements Runnable {
 			Service.getServices().forEach(service -> System.out.printf(
 				format,
 				service.getConfig().getColorizedName(),
-				service.getStatus().toString()
+				service.getStatus()
 			));
 			return;
 		}
@@ -352,10 +355,10 @@ public class CLI implements Runnable {
 		try {
 			dotCode = new ConfigToDot(new ConfigToDot.Builder(config)).convert();
 			Files.writeString(Path.of(filename), dotCode);
+			String cmd = CommandLine.Help.Ansi.ON.string("@|bold dot -Tsvg " + filename + "|@");
 			System.out.println(
 				"Dot code has been written to " + filename
-					+ "\nRun " + Ansi.colorize("dot -Tsvg " + filename, Attribute.BOLD())
-					+ " to obtain a nice svg image"
+					+ "\nRun " + cmd + " to obtain a nice svg image"
 			);
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, "Couldn't save generated dot code into " + filename, e);

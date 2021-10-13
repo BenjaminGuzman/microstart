@@ -102,7 +102,7 @@ groups:
       - redis
       - postgres
 
-continueAfterError: true
+ignoreErrrors: true
 ```
 
 As you can see, each group has:
@@ -115,7 +115,7 @@ As you can see, each group has:
 - `dependencies`: List of groups that should be run before this group is run. The group will not run<sup>1</sup> unless
   its dependencies have been run and successfully notified they have started
 
-<sup>1</sup> You can modify this behaviour with the `continueAfterError` key.
+<sup>1</sup> You can modify this behaviour with the `ignoreErrors` key.
 
 **It is allowed to have a group and a service with the same name (or aliases), but not 2 groups or 2 services with the
 same name (or aliases)**
@@ -215,7 +215,7 @@ groups:
       - redis
       - postgres
 
-continueAfterError: true
+ignoreErrors: true
 ```
 
 As you can see, each group has:
@@ -251,6 +251,8 @@ With the following options
 - `-c/--config`: Path to configuration file. Default: `microstart.yaml`
 - `-i/--input`: Initial input to process. This is just a shorthand, so you don't need to start the application and then
   enter the command
+- `-e/--ignore-errors`: Tells if execution should be stopped when a service notifies an error has happened.
+  Overrides `ignoreErrors` key in config file
 
 ### Command line
 
@@ -264,12 +266,11 @@ Check [Projects](https://github.com/BenjaminGuzman/microstart/projects) tab
 
 ### Libraries used
 
-- [Apache Commons CLI](https://commons.apache.org/proper/commons-cli/): Parse CLI args
-- [JColor](https://github.com/dialex/JColor): Give color and style to text
+- [PicoCLI](https://picocli.info/): Parse CLI args and colorize output
 - [Jetbrains Annotations](https://www.jetbrains.com/help/idea/annotating-source-code.html): Better code documentation
 - [JUnit 5](https://junit.org/junit5/): Test framework
 - [JSON parser](https://mvnrepository.com/artifact/org.json/json): Parse JSON
-- [JSON schema validator](https://github.com/everit-org/json-schema/): Validate JSON complies with a defined schema
+- [JSON schema validator](https://github.com/everit-org/json-schema/): Validate JSON with a defined schema
 - [Snake YAML](https://bitbucket.org/asomov/snakeyaml/src): Convert from YAML (to `Map<String, Object>`) to JSON
 
 ## License
