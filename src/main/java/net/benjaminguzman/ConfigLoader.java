@@ -47,8 +47,6 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.diogonunes.jcolor.Attribute.TEXT_COLOR;
-
 public class ConfigLoader {
 	private static volatile ConfigLoader instance = null;
 
@@ -68,7 +66,7 @@ public class ConfigLoader {
 				"Cannot instantiate " + ConfigLoader.class.getName() + " more than once"
 			);
 
-		if (file.length() < 10)
+		if (file.exists() && file.length() < 10) // if file doesn't exist exception will be thrown later
 			LOGGER.warning(file.getName() + " has less than 10 bytes, that doesn't seem good");
 
 		if (file.getName().endsWith("json"))
@@ -124,7 +122,7 @@ public class ConfigLoader {
 		Config conf = Config.getInstance();
 
 		// load single values
-		conf.setContinueAfterError(shouldContinueAfterError())
+		conf.setContinueAfterError(shouldIgnoreErrors())
 			.setMaxDepth(maxDepth());
 
 		// load all services
@@ -142,10 +140,10 @@ public class ConfigLoader {
 
 	/**
 	 * @return the value of the key continueAfterError in the JSON file or
-	 * {@link ConfigDefaults#CONTINUE_AFTER_ERROR} if not defined
+	 * {@link ConfigDefaults#IGNORE_ERRORS} if not defined
 	 */
-	public boolean shouldContinueAfterError() {
-		return rootNode.optBoolean("continueAfterError", ConfigDefaults.CONTINUE_AFTER_ERROR);
+	public boolean shouldIgnoreErrors() {
+		return rootNode.optBoolean("ignoreErrors", ConfigDefaults.IGNORE_ERRORS);
 	}
 
 	/**
@@ -265,7 +263,7 @@ public class ConfigLoader {
 			else // color is given as an integer
 				color = new Color(serviceJSONConfig.getInt("color"));
 
-			config.setAsciiColor(TEXT_COLOR(color.getRed(), color.getGreen(), color.getBlue()));
+			config.setColor(color);
 		}
 
 		if (serviceJSONConfig.has("workDir")) {

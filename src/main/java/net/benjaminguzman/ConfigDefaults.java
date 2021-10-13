@@ -20,7 +20,7 @@ package net.benjaminguzman;
 
 public final class ConfigDefaults {
 	public static final int MAX_DEPTH = 5;
-	public static final boolean CONTINUE_AFTER_ERROR = true;
+	public static final boolean IGNORE_ERRORS = true;
 
 	private ConfigDefaults() {
 		throw new UnsupportedOperationException("Cannot instantiate this class");

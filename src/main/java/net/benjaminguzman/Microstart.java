@@ -18,10 +18,9 @@
 
 package net.benjaminguzman;
 
-import org.apache.commons.cli.*;
 import org.everit.json.schema.ValidationException;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import picocli.CommandLine;
 
 import javax.management.InstanceAlreadyExistsException;
 import java.io.File;
@@ -32,28 +31,47 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class Microstart {
+@CommandLine.Command(
+	name = "microstart",
+	description = "Start processes groups with dependencies in a single command",
+	version = "microstart v0.8",
+	header = "Copyright (c) 2021. Benjamín Antonio Velasco Guzmán\n" +
+		"This program comes with ABSOLUTELY NO WARRANTY.\n" +
+		"This is free software, and you are welcome to redistribute it\n" +
+		"under certain conditions.\n" +
+		"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>\n",
+	mixinStandardHelpOptions = true
+)
+public class Microstart implements Runnable {
 	public static final Logger LOGGER = Logger.getLogger(Microstart.class.getName());
 	public static final boolean IS_WINDOWS = System.getProperty("os.name").contains("win");
 
-	/**
-	 * If true, and an error occurred while running a service or group
-	 * <p>
-	 * The application should continue execution
-	 */
-	public static boolean CONTINUE_AFTER_ERROR = true;
+	@CommandLine.Option(
+		names = {"-c", "--config"},
+		description = "Path to the configuration file",
+		defaultValue = "microstart.yaml"
+	)
+	private String configFile;
 
-	public static final String DEFAULT_CONFIG_FILE = "microstart.yaml";
+	@CommandLine.Option(
+		names = {"-i", "--input"},
+		description = "Command(s) to be executed by microstart CLI. Example: \"start <service name>\""
+	)
+	private String initialInput;
+
+	@CommandLine.Option(
+		names = {"-e", "--ignore-errors"},
+		description = "Tells if execution should be stopped when a service notifies an error has " +
+			"happened. Overrides ignoreErrors key in config file"
+	)
+	private boolean ignoreErrors;
+
+	/**
+	 * If true, and an error occurred while running a service or group, the application will continue execution
+	 */
+	public static boolean IGNORE_ERRORS;
 
 	public static void main(String... args) {
-		System.out.println(
-			"Micro start version: " + Microstart.class.getPackage().getImplementationVersion() + "\n" +
-				"Copyright (c) 2021. Benjamín Antonio Velasco Guzmán\n" +
-				"This program comes with ABSOLUTELY NO WARRANTY.\n" +
-				"This is free software, and you are welcome to redistribute it\n" +
-				"under certain conditions.\n" +
-				"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>\n"
-		);
 		System.setProperty("java.util.logging.SimpleFormatter.format", "[%4$-7s] [%1$tF %1$tT] %5$s %n");
 
 		// when jvm is shutting down, kill all its children processes.
@@ -68,17 +86,19 @@ public class Microstart {
 			() -> ProcessHandle.current().children().forEach(Microstart::destroyChildrenProcesses)
 		));
 
-		CommandLine cli = parseCLIArgs(args);
-		if (cli == null)
-			return;
+		CommandLine commandLine = new CommandLine(new Microstart());
+		commandLine.execute(args);
+	}
 
-		if (cli.hasOption("help")) {
-			HelpFormatter helpFormatter = new HelpFormatter();
-			helpFormatter.printHelp("java -jar <jar name>", getCLIOptions());
-			return;
-		}
-
-		String configFile = cli.hasOption("config") ? cli.getOptionValue("config") : DEFAULT_CONFIG_FILE;
+	@Override
+	public void run() {
+		System.out.println(
+			"Copyright (c) 2021. Benjamín Antonio Velasco Guzmán\n" +
+				"This program comes with ABSOLUTELY NO WARRANTY.\n" +
+				"This is free software, and you are welcome to redistribute it\n" +
+				"under certain conditions.\n" +
+				"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>\n"
+		);
 
 		// load configuration
 		try {
@@ -107,14 +127,17 @@ public class Microstart {
 			LOGGER.severe(e.getMessage());
 			return;
 		}
+
 		assert ConfigLoader.getInstance() != null;
-		CONTINUE_AFTER_ERROR = ConfigLoader.getInstance().shouldContinueAfterError();
+		IGNORE_ERRORS = ConfigLoader.getInstance().shouldIgnoreErrors();
+
+		if (ignoreErrors) // override value in config
+			IGNORE_ERRORS = true;
 
 		// start command line
 		try {
-			String inputLine = cli.getOptionValue("input");
-			if (inputLine != null)
-				new CLI(inputLine).run();
+			if (initialInput != null)
+				new CLI(initialInput).run();
 			else
 				new CLI().run();
 		} catch (InstanceAlreadyExistsException e) {
@@ -138,43 +161,6 @@ public class Microstart {
 				}
 			});
 		}
-	}
-
-	@NotNull
-	private static Options getCLIOptions() {
-		Options options = new Options();
-		options.addOption(
-			"c",
-			"config",
-			true,
-			"Path to the json config file. Default: " + DEFAULT_CONFIG_FILE
-		);
-		options.addOption(
-			"i",
-			"input",
-			true,
-			"Command(s) to be executed by microstart CLI. Example: \"start group <service group name>\""
-		);
-		options.addOption("h", "help", false, "Print this message");
-
-		return options;
-	}
-
-	@Nullable
-	private static CommandLine parseCLIArgs(String... args) {
-		Options options = getCLIOptions();
-
-		try {
-			return new DefaultParser().parse(options, args);
-		} catch (ParseException e) {
-			if (e instanceof UnrecognizedOptionException)
-				System.out.println(e.getMessage());
-			else if (e instanceof MissingArgumentException)
-				System.out.println(e.getMessage());
-			else
-				LOGGER.log(Level.SEVERE, "😱 Exception while parsing CLI options", e);
-		}
-		return null;
 	}
 
 	/**

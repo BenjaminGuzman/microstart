@@ -35,7 +35,7 @@ public class Config {
 	public final Map<String, GroupConfig> groups = new HashMap<>();
 
 	public int maxDepth = ConfigDefaults.MAX_DEPTH;
-	public boolean continueAfterError = ConfigDefaults.CONTINUE_AFTER_ERROR;
+	public boolean continueAfterError = ConfigDefaults.IGNORE_ERRORS;
 
 	public static Config getInstance() {
 		return config;
