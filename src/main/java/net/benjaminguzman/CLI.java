@@ -162,7 +162,6 @@ public class CLI implements Runnable {
 			case "":
 				return false;
 		}
-		System.out.println("Processing command: \"" + cmd + "\"");
 
 		// deal with group commands
 		if (cmd.startsWith("start group") || cmd.startsWith("group start")) {
