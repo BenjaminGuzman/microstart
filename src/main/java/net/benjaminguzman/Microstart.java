@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 @CommandLine.Command(
 	name = "microstart",
 	description = "Start processes groups with dependencies in a single command",
-	version = "microstart v0.8",
+	version = "microstart v0.8.1",
 	header = "Copyright (c) 2021. Benjamín Antonio Velasco Guzmán\n" +
 		"This program comes with ABSOLUTELY NO WARRANTY.\n" +
 		"This is free software, and you are welcome to redistribute it\n" +
