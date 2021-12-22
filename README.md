@@ -262,9 +262,7 @@ When you start the application you'll see some help, so you can use it, it's ver
 
 Check [Projects](https://github.com/BenjaminGuzman/microstart/projects) tab
 
-## Acknowledgements
-
-### Libraries used
+## Dependencies
 
 - [PicoCLI](https://picocli.info/): Parse CLI args and colorize output
 - [Jetbrains Annotations](https://www.jetbrains.com/help/idea/annotating-source-code.html): Better code documentation
