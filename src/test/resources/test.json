@@ -16,6 +16,15 @@
         "workDir": "/tmp",
         "startedPatterns": ["Works", "(service|server) is up"],
         "errorPatterns": ["error", "errno"]
+    }, {
+        "name": "Mirror",
+        "start": "python src/test/resources/mirror.py",
+        "aliases": ["mirror"],
+        "color": "0x00ffff",
+        "workDir": "/tmp",
+        "startedPatterns": ["World!"],
+        "errorPatterns": ["error"],
+        "stdin": "src/test/resources/mirror.stdin"
     }],
     "groups": [{
         "name": "good group",

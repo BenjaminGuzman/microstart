@@ -228,11 +228,16 @@ As you can see, each group has:
   identify which output comes from which service. Color will only be displayed if your terminal supports it
 - `workDir`: Working directory where the start command is going to be run.
 - `startedPatterns`: List of patterns ([RegEx](https://docs.oracle.com/javase/tutorial/essential/regex/)) that will
-  identify the service has started. These patterns are looked in the process' **stdout**
+  identify the service has started. These patterns are looked in the process' **stdout**. **Pro-tip**: if you think 
+  microstart is broken because it just hangs after a service has "started", **double-check your RegEx**, 
+  e.g. "active (running)" is not the same as "active \\(running\\)".
 - `errorPatterns`: List of patterns ([RegEx](https://docs.oracle.com/javase/tutorial/essential/regex/)) that will
   identify the service failed to start. These patterns are looked in the process' **stderr**.
 
 **Aliases and names are case-sensitive**, that's why *Gateway* has an alias *gateway*
+
+[CASE_INSENSITIVE](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/regex/Pattern.html#CASE_INSENSITIVE)
+flag is **added to all patterns** (both `startedPatterns` and `errorPatterns`)
 
 ## YAML/JSON config properties
 

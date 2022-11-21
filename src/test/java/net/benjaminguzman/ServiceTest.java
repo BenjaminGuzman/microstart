@@ -22,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import javax.management.InstanceAlreadyExistsException;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -186,6 +187,51 @@ class ServiceTest {
 
 		assertTrue(queue.isEmpty());
 		assertEquals(3, i.get());
+
+		assertNotNull(Service.forName(serviceName)); // check the service was added to singleton map
+	}
+
+	@Test
+	@DisplayName("Testing stdin redirection works")
+	void runStdinRedirection() throws InterruptedException, InstanceAlreadyExistsException {
+		String serviceName = "Mirror";
+
+		assertNull(Service.forName(serviceName));
+
+		List<ServiceStatus> expectedStatuses = List.of(
+			ServiceStatus.LOADED,
+			ServiceStatus.STARTING,
+			ServiceStatus.STARTED,
+			ServiceStatus.STOPPING,
+			ServiceStatus.STOPPED
+		);
+
+		Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks = new HashMap<>();
+
+		BlockingQueue<ServiceStatus> queue = new ArrayBlockingQueue<>(expectedStatuses.size(), true);
+
+		Service service = new Service(
+			new ServiceConfig()
+				.setName(serviceName)
+				.setStartedPatterns(List.of(
+					Pattern.compile("World!", Pattern.CASE_INSENSITIVE)
+				))
+				.setStdin(new File("src/test/resources/mirror.stdin"))
+				.setStartCmd("python src/test/resources/mirror.py"),
+			hooks,
+			(s, e) -> fail(),
+			queue
+		);
+		Thread t = new Thread(service);
+		t.start();
+
+		// check all expected statuses have been added to queue
+		for (ServiceStatus status : expectedStatuses)
+			assertEquals(status, queue.take());
+
+		t.join();
+
+		assertTrue(queue.isEmpty());
 
 		assertNotNull(Service.forName(serviceName)); // check the service was added to singleton map
 	}

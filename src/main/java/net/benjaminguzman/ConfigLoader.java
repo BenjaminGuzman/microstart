@@ -41,6 +41,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.*;
 import java.util.logging.Logger;
@@ -55,12 +56,14 @@ public class ConfigLoader {
 
 	/**
 	 * @param file configuration will be read from this file
-	 * @throws IOException if there is an error while reading file contents (e.g. file doesn't exist)
-	 * @throws ValidationException if the given config file doesn't comply with the schema specification
+	 * @throws IOException                    if there is an error while reading file contents (e.g. file doesn't
+	 * exist)
+	 * @throws ValidationException            if the given config file doesn't comply with the schema specification
 	 * @throws InstanceAlreadyExistsException if there already exists an instance of this class. Use
-	 * {@link #getInstance()} to use it instead of creating a new one
+	 *                                        {@link #getInstance()} to use it instead of creating a new one
 	 */
-	public ConfigLoader(@NotNull File file) throws IOException, ValidationException, InstanceAlreadyExistsException {
+	public ConfigLoader(@NotNull File file) throws IOException, ValidationException,
+		InstanceAlreadyExistsException {
 		if (instance != null)
 			throw new InstanceAlreadyExistsException(
 				"Cannot instantiate " + ConfigLoader.class.getName() + " more than once"
@@ -239,7 +242,8 @@ public class ConfigLoader {
 	 * @throws ServiceNotFoundException if the service configuration was not found
 	 */
 	@NotNull
-	private ServiceConfig loadServiceConfigJSON(@NotNull String name) throws FileNotFoundException, JSONException, ServiceNotFoundException {
+	private ServiceConfig loadServiceConfigJSON(@NotNull String name) throws FileNotFoundException, JSONException,
+		ServiceNotFoundException {
 		JSONObject serviceJSONConfig = getItemByNameOrAlias(name, rootNode.getJSONArray("services"));
 		if (serviceJSONConfig == null)
 			throw new ServiceNotFoundException("\"" + name + "\"" + " service was not found");
@@ -256,6 +260,17 @@ public class ConfigLoader {
 		if (serviceJSONConfig.has("aliases"))
 			config.setAliases(list2StringList(serviceJSONConfig.getJSONArray("aliases").toList()));
 
+		if (serviceJSONConfig.has("stdin")) {
+			File stdinFile = new File(serviceJSONConfig.getString("stdin"));
+			if (!stdinFile.exists() || !stdinFile.canRead() || !stdinFile.isFile())
+				throw new FileNotFoundException(
+					"\"" + stdinFile.getAbsolutePath() + "\" either " +
+						"doesn't exist, is not a regular file, or can't be read"
+				);
+
+			config.setStdin(stdinFile);
+		}
+
 		if (serviceJSONConfig.has("color")) {
 			Color color;
 			if (serviceJSONConfig.get("color") instanceof String) // color is given as string
@@ -270,8 +285,8 @@ public class ConfigLoader {
 			File workDir = new File(serviceJSONConfig.getString("workDir"));
 			if (!workDir.exists() || !workDir.isDirectory() || !workDir.canRead())
 				throw new FileNotFoundException(
-					"\"" + workDir.getAbsolutePath() + "\" either doesn't exists," +
-						" isn't a directory, or you can't read from it"
+					"\"" + workDir.getAbsolutePath() + "\" either doesn't exist," +
+						" is not a directory, or can't be read"
 				);
 
 			config.setWorkingDirectory(workDir);
