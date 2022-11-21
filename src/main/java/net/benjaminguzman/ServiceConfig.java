@@ -19,6 +19,7 @@
 package net.benjaminguzman;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import picocli.CommandLine;
 
 import java.awt.*;
@@ -75,6 +76,9 @@ public class ServiceConfig {
 
 	@NotNull
 	private String[] startCmd = {"npm", "run", "start"};
+
+	@Nullable
+	private File stdin;
 
 	@NotNull
 	private String colorizedName = CommandLine.Help.Ansi.ON.string("@|white " + name + "|@");
@@ -209,6 +213,19 @@ public class ServiceConfig {
 			startCmd
 		};
 		return this;
+	}
+
+	/**
+	 * @param stdin the file containing the data that will be passed to the service process' stdin
+	 */
+	public ServiceConfig setStdin(@Nullable File stdin) {
+		this.stdin = stdin;
+		return this;
+	}
+
+	@Nullable
+	public File getStdin() {
+		return stdin;
 	}
 
 	/**

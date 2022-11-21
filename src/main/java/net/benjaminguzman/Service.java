@@ -198,6 +198,12 @@ public class Service implements Runnable {
 		ProcessBuilder processBuilder = new ProcessBuilder(config.getStartCmd())
 			.directory(config.getWorkingDirectory());
 
+		// if provided, redirect file contents to stdin
+		if (config.getStdin() != null) {
+			processBuilder = processBuilder.redirectInput(config.getStdin());
+			LOGGER.info(config.getStdin().getAbsolutePath() + " will serve as stdin for " + config.getColorizedName());
+		}
+
 		try {
 			proc = processBuilder.start();
 			LOGGER.info(() -> config.getColorizedName() + " PID: " + proc.pid());

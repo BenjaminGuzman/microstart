@@ -55,6 +55,10 @@
                             "type": "string",
                             "description": "Pattern that indicates the service has started. Example: errno is [0-9]{1, 2}. Pattern is compiled with CASE_INSENSITIVE option"
                         }
+                    },
+                    "stdin": {
+                        "type": "string",
+                        "description": "If you want to provide some data to the service process, put it inside a file and it'll be redirected to the process"
                     }
                 }
             }
