@@ -1,6 +1,7 @@
 # IDE's
 **/.idea
 **/.vscode
+**/*.swp
 
 # Other files
 **/*.dia~
