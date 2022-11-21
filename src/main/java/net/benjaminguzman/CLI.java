@@ -293,6 +293,12 @@ public class CLI implements Runnable {
 	}
 
 	private void stopServiceByName(@NotNull String serviceName) {
+		if (serviceName.isBlank()) {
+			System.out.println("No service name was provided");
+			System.out.println("To see a list of available services use the status command");
+			return;
+		}
+
 		Service service = Service.forName(serviceName);
 
 		if (service == null) { // service has not been loaded, therefore it is not running
