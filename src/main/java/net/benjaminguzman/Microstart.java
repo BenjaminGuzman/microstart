@@ -49,7 +49,7 @@ public class Microstart implements Runnable {
 	@CommandLine.Option(
 		names = {"-c", "--config"},
 		description = "Path to the configuration file",
-		defaultValue = "microstart.yaml"
+		defaultValue = "microstart.yml"
 	)
 	private String configFile;
 
