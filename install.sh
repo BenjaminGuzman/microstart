@@ -1,20 +1,14 @@
 #!/bin/bash
 
-# another way to check if file exist
-#if ! compgen -G "target/microstart*with-dependencies.jar" > /dev/null; then
-#	echo "Jar doesn't exist. Building it now..."
-#	mvn clean package
-#fi
-
 echo "Installing microstart..."
 
-jar=(target/microstart*with-dependencies.jar)
-jar="${jar[0]}"
-
-if [[ ! -f "$jar" ]]; then
+if ! compgen -G "target/microstart*with-dependencies.jar" > /dev/null; then
 	echo -e "\tJar doesn't exist. Building it now..."
 	mvn clean package
 fi
+
+jar=(target/microstart*with-dependencies.jar)
+jar="${jar[0]}"
 
 # TODO: let the user decide installation directory
 # TODO: let the user decide if copying whole jar or simply creating a symlink

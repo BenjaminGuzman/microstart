@@ -238,6 +238,10 @@ As you can see, each group has:
 
 For all available JSON/YAML properties, description and constraints see [schema.json](src/main/resources/schema.json)
 
+## Installation
+
+[`install.sh`](install.sh) script is provided, simply execute it
+
 ## Usage
 
 After you've defined your json/yaml configuration, you can run the application with
