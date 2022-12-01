@@ -378,19 +378,36 @@ public class CLI implements Runnable {
 
 			// maximum width for all service names
 			int max_width = Service.getServices().stream()
-				.map(service -> service.getConfig().getColorizedName())
+				.map(service -> service.getConfig().getName())
 				.mapToInt(String::length)
 				.max()
 				.orElse(30);
 
+			// pretty print all service names and their status
+			StringBuilder strBuilder = new StringBuilder();
+			for (Service service : Service.getServices()) {
+				int serviceNameLength = service.getConfig().getName().length();
+				String spaces = " ".repeat(max_width - serviceNameLength);
+				strBuilder.append(service.getConfig().getColorizedName())
+					.append(spaces)
+					.append("  ")
+					.append(service.getStatus())
+					.append('\n');
+			}
+			strBuilder.deleteCharAt(strBuilder.length() - 1); // prompt output library will add the linespace
+			System.out.println(strBuilder);
+
 			// %-15s -> left aligned 15 char-width string
-			String format = "%-" + max_width + "s  %-10s\n";
+			/*String format = "%-" + max_width + "s - %S%n";
 
 			Service.getServices().forEach(service -> System.out.printf(
 				format,
 				service.getConfig().getColorizedName(),
 				service.getStatus()
 			));
+			// This actually doesn't work. Probably because printf has problems handling the ascii escape codes
+			 */
+
 			return;
 		}
 
@@ -437,7 +454,7 @@ public class CLI implements Runnable {
 			" - status [<service name>]. Query the status of a particular service\n" +
 			"   or all services if service name is not provided\n" +
 			" - load. Load all services which haven't been loaded yet.\n" +
-			"   Useful to validate config\n" +
+			"   Useful to validate config. It may produce duplicated output\n" +
 			" - print <filename> Convert the configuration to dot (graphviz) code and write it into the " +
 			"specified filename\n" +
 			"   Useful to obtain an overview of microservices dependency graph\n" +
