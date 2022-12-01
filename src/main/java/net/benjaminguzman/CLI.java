@@ -394,7 +394,7 @@ public class CLI implements Runnable {
 					.append(service.getStatus())
 					.append('\n');
 			}
-			strBuilder.deleteCharAt(strBuilder.length() - 1); // prompt output library will add the linespace
+			strBuilder.deleteCharAt(strBuilder.length() - 1); // prompt output library will add the linefeed
 			System.out.println(strBuilder);
 
 			// %-15s -> left aligned 15 char-width string
