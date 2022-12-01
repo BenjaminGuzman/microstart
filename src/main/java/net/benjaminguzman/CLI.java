@@ -30,10 +30,7 @@ import javax.management.InstanceAlreadyExistsException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -197,6 +194,11 @@ public class CLI implements Runnable {
 			return false;
 		}
 
+		if (cmd.startsWith("load")) {
+			loadAllServices();
+			return false;
+		}
+
 		// process print command
 		if (cmd.startsWith("print")) {
 			String filename = cmd.substring("print".length()).stripLeading();
@@ -204,10 +206,10 @@ public class CLI implements Runnable {
 				assert ConfigLoader.getInstance() != null;
 				printDot(filename, ConfigLoader.getInstance().load());
 			} catch (ServiceNotFoundException
-				| FileNotFoundException
-				| MaxDepthExceededException
-				| GroupNotFoundException
-				| CircularDependencyException e) {
+			         | FileNotFoundException
+			         | MaxDepthExceededException
+			         | GroupNotFoundException
+			         | CircularDependencyException e) {
 				LOGGER.log(Level.SEVERE, "Config file is invalid", e);
 			}
 			return false;
@@ -218,22 +220,57 @@ public class CLI implements Runnable {
 		return false;
 	}
 
+	private void loadAllServices() {
+		try {
+			ConfigLoader configLoader = ConfigLoader.getInstance();
+			if (configLoader == null)
+				return;
+
+			configLoader.load()
+				.getServices()
+				.keySet()
+				.stream()
+				.filter(serviceName -> Service.forName(serviceName) == null) // only load not loaded services, otherwise an exception will be produced
+				.forEach(this::loadServiceByName);
+		} catch (ServiceNotFoundException | FileNotFoundException | MaxDepthExceededException |
+		         GroupNotFoundException | CircularDependencyException e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+	/**
+	 * Loads a NOT loaded yet group by its name.
+	 * Call this method only if {@link Group#forName(String)} returned null
+	 *
+	 * @param groupName group name
+	 * @return the group or null in case an exception was encountered
+	 */
+	@Nullable
+	private Group loadGroupByName(@NotNull String groupName) {
+		Group group = null;
+		try {
+			assert ConfigLoader.getInstance() != null;
+			group = new Group(
+				ConfigLoader.getInstance().loadGroupConfig(groupName)
+			);
+		} catch (MaxDepthExceededException | GroupNotFoundException | CircularDependencyException |
+		         FileNotFoundException | ServiceNotFoundException e) {
+			System.out.println("Couldn't load group \"" + groupName + "\"");
+			System.out.println(e.getMessage());
+		} catch (InstanceAlreadyExistsException e) {
+			LOGGER.log(Level.SEVERE, "Programming error❗", e);
+		}
+		return group;
+	}
+
 	private void startGroupByName(@NotNull String groupName) {
 		Group group = Group.forName(groupName);
 
-		if (group == null) // group has not been loaded. Load it
-			try {
-				assert ConfigLoader.getInstance() != null;
-				group = new Group(
-					ConfigLoader.getInstance().loadGroupConfig(groupName)
-				);
-			} catch (MaxDepthExceededException | GroupNotFoundException | CircularDependencyException | FileNotFoundException | ServiceNotFoundException e) {
-				System.out.println(e.getMessage());
+		if (group == null) {// group has not been loaded. Load it
+			group = loadGroupByName(groupName);
+			if (group == null) // group couldn't be successfully loaded
 				return;
-			} catch (InstanceAlreadyExistsException e) {
-				LOGGER.log(Level.SEVERE, "Programming error❗", e);
-				return;
-			}
+		}
 
 		// by now, the group has been loaded
 		if (!group.isUp()) // if the group is not up, try to start it
@@ -261,23 +298,38 @@ public class CLI implements Runnable {
 			System.out.println("Group \"" + groupName + "\" has been loaded but it is not running");
 	}
 
+	/**
+	 * Loads a NOT loaded yet service by its name.
+	 * Call this method only if {@link Service#forName(String)} returned null
+	 *
+	 * @param serviceName service name
+	 * @return the service or null in case an exception was encountered
+	 */
+	@Nullable
+	private Service loadServiceByName(@NotNull String serviceName) {
+		Service service = null;
+		try {
+			assert ConfigLoader.getInstance() != null;
+			ServiceConfig serviceConfig =
+				ConfigLoader.getInstance().loadServiceConfig(serviceName);
+			service = new Service(serviceConfig, new HashMap<>(), (s, e) -> {});
+		} catch (FileNotFoundException | ServiceNotFoundException e) {
+			System.out.println(e.getMessage());
+		} catch (InstanceAlreadyExistsException e) {
+			LOGGER.log(Level.SEVERE, "Programming error❗", e);
+		}
+		return service;
+	}
+
 	private void startServiceByName(@NotNull String serviceName) {
 		Service service = Service.forName(serviceName);
 
-		if (service == null) // service has not been loaded. Load it
-			try {
-				assert ConfigLoader.getInstance() != null;
-				ServiceConfig serviceConfig =
-					ConfigLoader.getInstance().loadServiceConfig(serviceName);
-				service = new Service(serviceConfig, new HashMap<>(), (s, e) -> {});
-				System.out.println("Service " + serviceConfig.getColorizedName() + " loaded");
-			} catch (FileNotFoundException | ServiceNotFoundException e) {
-				System.out.println(e.getMessage());
+		if (service == null) { // service has not been loaded. Load it
+			service = loadServiceByName(serviceName);
+			if (service == null) // service couldn't be successfully loaded
 				return;
-			} catch (InstanceAlreadyExistsException e) {
-				LOGGER.log(Level.SEVERE, "Programming error❗", e);
-				return;
-			}
+			System.out.println("Service " + service.getConfig().getColorizedName() + " loaded");
+		}
 
 		// by now, the service has been loaded
 		if (service.getStatus().isRunning()) {
@@ -320,7 +372,7 @@ public class CLI implements Runnable {
 	private void serviceStatusByName(@NotNull String serviceName) {
 		if (serviceName.isBlank()) { // show status for all services
 			if (Service.getServices().isEmpty()) {
-				System.out.println("No service has been loaded");
+				System.out.println("No service has been loaded. Try the load command");
 				return;
 			}
 
@@ -384,6 +436,8 @@ public class CLI implements Runnable {
 			" - (start|stop) <service name>. Start or stop a singleton service\n" +
 			" - status [<service name>]. Query the status of a particular service\n" +
 			"   or all services if service name is not provided\n" +
+			" - load. Load all services which haven't been loaded yet.\n" +
+			"   Useful to validate config\n" +
 			" - print <filename> Convert the configuration to dot (graphviz) code and write it into the " +
 			"specified filename\n" +
 			"   Useful to obtain an overview of microservices dependency graph\n" +
