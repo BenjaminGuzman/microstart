@@ -256,7 +256,8 @@ public class Group {
 	private void onException(Service service, Exception e) {
 		LOGGER.log(
 			Level.SEVERE,
-			"Exception produced while starting service " + service.getConfig().getColorizedName(),
+			"Exception produced while managing service " + service.getConfig().getColorizedName()
+				+ ". Service status: " + service.getStatus(),
 			e
 		);
 	}
