@@ -216,6 +216,12 @@ public class CLI implements Runnable {
 		}
 
 		System.out.println("Command \"" + cmd + "\" was not understood. Type \"help\" or \"h\" to print help");
+		System.out.println("Forwarding command \"" + cmd + "\" to OS...");
+		try {
+			Runtime.getRuntime().exec(cmd).waitFor();
+		} catch (InterruptedException | IOException e) {
+			LOGGER.log(Level.WARNING, "Exception encountered while executing: " + cmd, e);
+		}
 
 		return false;
 	}
