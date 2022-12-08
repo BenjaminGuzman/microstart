@@ -218,7 +218,17 @@ public class CLI implements Runnable {
 		System.out.println("Command \"" + cmd + "\" was not understood. Type \"help\" or \"h\" to print help");
 		System.out.println("Forwarding command \"" + cmd + "\" to OS...");
 		try {
-			Runtime.getRuntime().exec(cmd).waitFor();
+			// this is the same code used by OpenJDK implementation for Runtime.exec(String)
+			StringTokenizer st = new StringTokenizer(cmd);
+			String[] cmdarray = new String[st.countTokens()];
+			for (int i = 0; st.hasMoreTokens(); i++)
+				cmdarray[i] = st.nextToken();
+
+			System.out.println("Control will also be forwarded to command. When the process is dead control will return to microstart");
+			new ProcessBuilder().command(cmdarray)
+				.inheritIO()
+				.start()
+				.waitFor();
 		} catch (InterruptedException | IOException e) {
 			LOGGER.log(Level.WARNING, "Exception encountered while executing: " + cmd, e);
 		}
