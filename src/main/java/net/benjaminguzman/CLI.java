@@ -386,13 +386,22 @@ public class CLI implements Runnable {
 			// pretty print all service names and their status
 			StringBuilder strBuilder = new StringBuilder();
 			for (Service service : Service.getServices()) {
+				ServiceStatus serviceStatus = service.getStatus();
 				int serviceNameLength = service.getConfig().getName().length();
 				String spaces = " ".repeat(max_width - serviceNameLength);
 				strBuilder.append(service.getConfig().getColorizedName())
 					.append(spaces)
 					.append("  ")
-					.append(service.getStatus())
-					.append('\n');
+					.append(serviceStatus);
+
+				if (serviceStatus == ServiceStatus.STARTED) {
+					assert service.getProc() != null;
+					strBuilder.append(" (pid: ")
+						.append(service.getProc().pid())
+						.append(")");
+				}
+
+				strBuilder.append('\n');
 			}
 			strBuilder.deleteCharAt(strBuilder.length() - 1); // prompt output library will add the linefeed
 			System.out.println(strBuilder);
