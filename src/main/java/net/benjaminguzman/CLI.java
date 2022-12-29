@@ -224,8 +224,10 @@ public class CLI implements Runnable {
 			for (int i = 0; st.hasMoreTokens(); i++)
 				cmdarray[i] = st.nextToken();
 
-			System.out.println("Control will also be forwarded to command. When the process is dead control will return to microstart");
-			new ProcessBuilder().command(cmdarray)
+			System.out.println("Control will also be forwarded to command.\n" +
+				"When the process is dead control will return to microstart");
+			new ProcessBuilder()
+				.command(cmdarray)
 				.inheritIO()
 				.start()
 				.waitFor();

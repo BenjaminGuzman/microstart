@@ -2,7 +2,7 @@
     "$schema": "https://raw.githubusercontent.com/BenjaminGuzman/microstart/main/src/main/resources/schema.json",
     "services": [{
         "name": "Test 1",
-        "start": "echo -e \"Testing config loader...\nIt works!\"",
+        "start": "echo -e \"Testing config loader...\\nIt works!\"",
         "aliases": ["test1", "first"],
         "color": "0x00ff00",
         "workDir": "/tmp",
@@ -10,7 +10,7 @@
         "errorPatterns": ["error", "errno"]
     }, {
         "name": "Test 2",
-        "start": "echo -e \"Testing config loader 2...\nIt works!\"",
+        "start": "echo -e \"Testing config loader 2...\\nIt works!\"",
         "aliases": ["test2", "second"],
         "color": "0x00ff00",
         "workDir": "/tmp",
