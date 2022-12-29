@@ -39,8 +39,9 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * This class is identical to {@link ConfigLoaderJSONTest} and this is because JUnit 5 doesn't support parametized tests
- * at class level https://github.com/junit-team/junit5/issues/871
+ * This class is identical to {@link ConfigLoaderJSONTest} and this is because JUnit 5 doesn't support parametrized
+ * tests at class level
+ * <a href="https://github.com/junit-team/junit5/issues/871">https://github.com/junit-team/junit5/issues/871</a>
  */
 class ConfigLoaderYAMLTest {
 	@BeforeAll

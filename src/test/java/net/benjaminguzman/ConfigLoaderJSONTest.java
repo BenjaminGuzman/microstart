@@ -49,7 +49,7 @@ class ConfigLoaderJSONTest {
 		ServiceConfig test1Config = Objects.requireNonNull(ConfigLoader.getInstance()).loadServiceConfig("Test 1");
 		assertNotNull(test1Config);
 		assertEquals("Test 1", test1Config.getName());
-		assertEquals("echo -e \"Testing config loader...\nIt works!\"", test1Config.getStartCmd()[2]);
+		assertEquals("echo -e \"Testing config loader...\\nIt works!\"", test1Config.getStartCmd()[2]);
 		assertEquals("/tmp", test1Config.getWorkingDirectory().toString());
 		assertEquals(Pattern.compile("Works", Pattern.CASE_INSENSITIVE).toString(), test1Config.getStartedPatterns().get(0).toString());
 		assertEquals(Pattern.compile("errno", Pattern.CASE_INSENSITIVE).toString(), test1Config.getErrorPatterns().get(1).toString());
@@ -65,7 +65,7 @@ class ConfigLoaderJSONTest {
 		ServiceConfig test2Config = Objects.requireNonNull(ConfigLoader.getInstance()).loadServiceConfig("Test 2");
 		assertNotNull(test2Config);
 		assertEquals("Test 2", test2Config.getName());
-		assertEquals("echo -e \"Testing config loader 2...\nIt works!\"", test2Config.getStartCmd()[2]);
+		assertEquals("echo -e \"Testing config loader 2...\\nIt works!\"", test2Config.getStartCmd()[2]);
 		assertEquals("/tmp", test2Config.getWorkingDirectory().toString());
 		assertEquals(Pattern.compile("Works", Pattern.CASE_INSENSITIVE).toString(), test2Config.getStartedPatterns().get(0).toString());
 		assertEquals(Pattern.compile("errno", Pattern.CASE_INSENSITIVE).toString(), test2Config.getErrorPatterns().get(1).toString());
