@@ -22,6 +22,7 @@ import net.benjaminguzman.exceptions.CircularDependencyException;
 import net.benjaminguzman.exceptions.GroupNotFoundException;
 import net.benjaminguzman.exceptions.MaxDepthExceededException;
 import net.benjaminguzman.exceptions.ServiceNotFoundException;
+import org.everit.json.schema.ValidationException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import picocli.CommandLine;
@@ -29,6 +30,7 @@ import picocli.CommandLine;
 import javax.management.InstanceAlreadyExistsException;
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Level;
@@ -156,6 +158,12 @@ public class CLI implements Runnable {
 			case "help":
 				printHelp();
 				return false;
+			case "reload":
+				reload();
+				return false;
+			case "load":
+				loadAllServices();
+				return false;
 			case "":
 				return false;
 		}
@@ -191,11 +199,6 @@ public class CLI implements Runnable {
 		if (cmd.startsWith("status")) {
 			String serviceName = cmd.substring("status".length()).stripLeading();
 			serviceStatusByName(serviceName);
-			return false;
-		}
-
-		if (cmd.startsWith("load")) {
-			loadAllServices();
 			return false;
 		}
 
@@ -252,6 +255,42 @@ public class CLI implements Runnable {
 				.forEach(this::loadServiceByName);
 		} catch (ServiceNotFoundException | FileNotFoundException | MaxDepthExceededException |
 		         GroupNotFoundException | CircularDependencyException e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
+	/**
+	 * Reload configuration
+	 */
+	private void reload() {
+		try {
+			ConfigLoader configLoader = ConfigLoader.getInstance();
+			if (configLoader == null)
+				return;
+
+			configLoader.refresh();
+			Group.clear(); // remove loaded groups
+			Service.clear(); // remove loaded services
+
+			System.out.println("Configuration successfully reloaded");
+		} catch (FileNotFoundException | NoSuchFileException e) {
+			System.out.println("Config file was deleted and doesn't exist anymore");
+		} catch (ValidationException e) {
+			ConfigLoader configLoader = ConfigLoader.getInstance();
+			if (configLoader == null)
+				System.out.println("Configuration file contains the following errors:");
+			else
+				System.out.println("Configuration file "
+					+ configLoader.getConfigFile().getAbsolutePath()
+					+ " contains the following errors:");
+
+			System.out.println(e.getMessage());
+			e.getCausingExceptions()
+				.stream()
+				.map(ValidationException::getMessage)
+				.forEach(System.out::println);
+		} catch (MaxDepthExceededException | GroupNotFoundException | IOException | CircularDependencyException |
+			 InstanceAlreadyExistsException | ServiceNotFoundException e) {
 			System.out.println(e.getMessage());
 		}
 	}
@@ -482,6 +521,7 @@ public class CLI implements Runnable {
 			"   or all services if service name is not provided\n" +
 			" - load. Load all services which haven't been loaded yet.\n" +
 			"   Useful to validate config. It may produce duplicated output\n" +
+			" - reload. Reload configuration from configuration file.\n" +
 			" - print <filename> Convert the configuration to dot (graphviz) code and write it into the " +
 			"specified filename\n" +
 			"   Useful to obtain an overview of microservices dependency graph\n" +

@@ -168,6 +168,14 @@ public class Service implements Runnable {
 	}
 
 	/**
+	 * Remove all loaded services
+	 */
+	public static void clear() {
+		services.clear();
+		uniqueServices.clear();
+	}
+
+	/**
 	 * @return a list of all loaded services
 	 */
 	public static Collection<Service> getServices() {

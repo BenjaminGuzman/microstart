@@ -123,6 +123,13 @@ public class Group {
 	}
 
 	/**
+	 * Remove all loaded groups
+	 */
+	public static void clear() {
+		serviceGroups.clear();
+	}
+
+	/**
 	 * @return list of loaded service groups
 	 */
 	public static Collection<Group> getGroups() {
