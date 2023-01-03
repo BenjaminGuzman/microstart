@@ -214,7 +214,7 @@ public class Group {
 		for (ServiceConfig serviceConfig : config.getServicesConfigs()) {
 			Service service = Service.forName(serviceConfig.getName());
 			assert service != null;
-			service.destroyProc();
+			service.stop();
 		}
 		return executorService.shutdownNow();
 	}

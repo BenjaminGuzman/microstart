@@ -310,6 +310,12 @@ public class ConfigLoader {
 		if (serviceJSONConfig.has("aliases"))
 			config.setAliases(list2StringList(serviceJSONConfig.getJSONArray("aliases").toList()));
 
+		if (serviceJSONConfig.has("stop"))
+			config.setStopCmd(serviceJSONConfig.getString("stop"));
+
+		if (serviceJSONConfig.has("stopTimeout"))
+			config.setStopTimeout(serviceJSONConfig.getInt("stopTimeout"));
+
 		if (serviceJSONConfig.has("stdin")) {
 			File stdinFile = new File(serviceJSONConfig.getString("stdin"));
 			if (!stdinFile.exists() || !stdinFile.canRead() || !stdinFile.isFile())

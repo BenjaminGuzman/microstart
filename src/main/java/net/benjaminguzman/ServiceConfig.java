@@ -77,6 +77,11 @@ public class ServiceConfig {
 	@NotNull
 	private String[] startCmd = {"npm", "run", "start"};
 
+	@NotNull
+	private String[] stopCmd = {"SIGINT"};
+
+	private int stopTimeout = 5;
+
 	@Nullable
 	private File stdin;
 
@@ -212,6 +217,72 @@ public class ServiceConfig {
 			Microstart.IS_WINDOWS ? "/c" : "-c",
 			startCmd
 		};
+		return this;
+	}
+
+	/**
+	 * Get the stop command (with arguments) to be executed on exit or when service is stopped
+	 * <p>
+	 * Some start commands may be dependent on the {@link #workingDirectory}
+	 * (for example "npm", "run", "start" won't work if working directory is not right)
+	 * <p>
+	 * Command MAY NOT be an actual command but a signal name (SIGHUP, SIGTERM, SIGKILL, SIGQUIT, SIGINT) which
+	 * should be sent to the process
+	 *
+	 * @return the command to execute in order to start the service. It'll be system dependent, for example, in
+	 * windows platforms it may return {"cmd", "/c", real command}. You can pass this to
+	 * {@link ProcessBuilder#command(String...)}
+	 * @see #setStopCmd(String)
+	 */
+	public String[] getStopCmd() {
+		return stopCmd;
+	}
+
+	/**
+	 * @param stopCmd the command to execute or signal to send to stop a service
+	 * @see #getStopCmd()
+	 */
+	public ServiceConfig setStopCmd(@NotNull String stopCmd) {
+		String normalizedStopCmd = stopCmd.strip().toUpperCase();
+		switch (normalizedStopCmd) {
+			case "SIGINT":
+			case "SIGTERM":
+			case "SIGHUP":
+			case "SIGKILL":
+			case "SIGQUIT":
+				this.stopCmd[0] = normalizedStopCmd;
+				break;
+			default:
+				this.stopCmd = new String[]{
+					Microstart.IS_WINDOWS ? "cmd" : "sh",
+					Microstart.IS_WINDOWS ? "/c" : "-c",
+					stopCmd
+				};
+		}
+		return this;
+	}
+
+	/**
+	 * Get the stop timeout (in seconds)
+	 * <p>
+	 * If service (process) hasn't been terminated after this number of seconds, destroy it
+	 *
+	 * @return timeout in seconds
+	 * @see #setStopTimeout(int)
+	 */
+	public int getStopTimeout() {
+		return stopTimeout;
+	}
+
+	/**
+	 * @param timeout timeout in seconds
+	 * @see #getStopTimeout()
+	 */
+	public ServiceConfig setStopTimeout(int timeout) {
+		if (timeout <= 0)
+			throw new IllegalArgumentException("stop timeout should be greater than 0");
+
+		this.stopTimeout = timeout;
 		return this;
 	}
 

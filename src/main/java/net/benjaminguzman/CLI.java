@@ -146,8 +146,8 @@ public class CLI implements Runnable {
 		return should_quit;
 	}
 
-	private boolean processSingleCommand(@NotNull String cmd) {
-		cmd = cmd.toLowerCase().strip();
+	private boolean processSingleCommand(@NotNull String originalCmd) {
+		String cmd = originalCmd.toLowerCase().strip();
 
 		switch (cmd) {
 			case "q":
@@ -218,11 +218,11 @@ public class CLI implements Runnable {
 			return false;
 		}
 
-		System.out.println("Command \"" + cmd + "\" was not understood. Type \"help\" or \"h\" to print help");
-		System.out.println("Forwarding command \"" + cmd + "\" to OS...");
+		System.out.println("Command \"" + originalCmd + "\" was not understood. Type \"help\" or \"h\" to print help");
+		System.out.println("Forwarding command \"" + originalCmd + "\" to OS...");
 		try {
 			// this is the same code used by OpenJDK implementation for Runtime.exec(String)
-			StringTokenizer st = new StringTokenizer(cmd);
+			StringTokenizer st = new StringTokenizer(originalCmd);
 			String[] cmdarray = new String[st.countTokens()];
 			for (int i = 0; st.hasMoreTokens(); i++)
 				cmdarray[i] = st.nextToken();
@@ -263,6 +263,15 @@ public class CLI implements Runnable {
 	 * Reload configuration
 	 */
 	private void reload() {
+		boolean notSafe = Service.getServices()
+			.stream()
+			.anyMatch(service -> service.getStatus().isRunning());
+
+		if (notSafe) {
+			System.out.println("It is not safe to reload since there are services running");
+			return;
+		}
+
 		try {
 			ConfigLoader configLoader = ConfigLoader.getInstance();
 			if (configLoader == null)
@@ -416,7 +425,7 @@ public class CLI implements Runnable {
 		}
 
 		if (service.getStatus() == ServiceStatus.STARTED) {
-			service.destroyProc();
+			service.stop();
 			return;
 		}
 

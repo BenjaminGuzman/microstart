@@ -25,8 +25,7 @@ import javax.management.InstanceAlreadyExistsException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -75,7 +74,7 @@ public class Service implements Runnable {
 	/**
 	 * Queue to store a history of the statuses this service has had
 	 */
-	@Nullable
+	@NotNull
 	private final BlockingQueue<ServiceStatus> statusesQueue;
 
 	/**
@@ -113,7 +112,7 @@ public class Service implements Runnable {
 		@NotNull Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks,
 		@NotNull BiConsumer<Service, ? super Exception> onException
 	) throws InstanceAlreadyExistsException {
-		this(config, hooks, onException, null);
+		this(config, hooks, onException, new LinkedBlockingQueue<>());
 	}
 
 	/**
@@ -135,7 +134,7 @@ public class Service implements Runnable {
 		@NotNull ServiceConfig config,
 		@NotNull Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> hooks,
 		@NotNull BiConsumer<Service, ? super Exception> onException,
-		@Nullable BlockingQueue<ServiceStatus> statusesQueue
+		@NotNull BlockingQueue<ServiceStatus> statusesQueue
 	) throws InstanceAlreadyExistsException {
 		// ensure there is no other service loaded with the same name or alias
 		if (forName(config.getName()) != null // using stream is probably not efficient, but it is easy
@@ -203,17 +202,17 @@ public class Service implements Runnable {
 		}
 
 		// start the service process
-		ProcessBuilder processBuilder = new ProcessBuilder(config.getStartCmd())
+		ProcessBuilder startProcBuilder = new ProcessBuilder(config.getStartCmd())
 			.directory(config.getWorkingDirectory());
 
 		// if provided, redirect file contents to stdin
 		if (config.getStdin() != null) {
-			processBuilder = processBuilder.redirectInput(config.getStdin());
+			startProcBuilder = startProcBuilder.redirectInput(config.getStdin());
 			LOGGER.info(config.getStdin().getAbsolutePath() + " will serve as stdin for " + config.getColorizedName());
 		}
 
 		try {
-			proc = processBuilder.start();
+			proc = startProcBuilder.start();
 			LOGGER.info(() -> config.getColorizedName() + " PID: " + proc.pid());
 		} catch (IOException e) {
 			LOGGER.log(
@@ -345,10 +344,122 @@ public class Service implements Runnable {
 	}
 
 	/**
+	 * Run the stop cmd (see {@link ServiceConfig})
+	 */
+	public void stop() {
+		if (proc == null || !proc.isAlive())
+			return;
+
+		ServiceConfig config = getConfig();
+		String[] stopCmd = config.getStopCmd();
+		int stopTimeout = getConfig().getStopTimeout();
+
+		if (stopCmd[0].startsWith("SIG")) { // cmd is actually not a command but a signal name
+			String signalName = stopCmd[0];
+			if (Microstart.IS_WINDOWS) {
+				LOGGER.finer("Windows 😠...");
+			} else {
+				System.out.println("Sending " + signalName + " to "
+					+ getConfig().getColorizedName() + " (pid: " + proc.pid() + ")");
+
+				String[] killCmd = {"kill", "--signal", signalName, String.valueOf(proc.pid())};
+				try {
+					Runtime.getRuntime()
+						.exec(killCmd)
+						.waitFor(stopTimeout, TimeUnit.SECONDS);
+				} catch (IOException e) {
+					LOGGER.log(
+						Level.SEVERE,
+						"Error while sending " + signalName + " to " + proc.pid(),
+						e
+					);
+				} catch (InterruptedException e) {
+					LOGGER.log(
+						Level.SEVERE,
+						"Error while sending " + signalName + " to " + proc.pid() + ". Will destroy the process now",
+						e
+					);
+				}
+			}
+
+			destroyProc(); // destroy the process anyway, if the kill command worked, then is a no-op
+		} else { // cmd is really a command
+			System.out.println("Executing stop command for " + getConfig().getColorizedName());
+			ProcessBuilder stopProcBuilder = new ProcessBuilder(config.getStopCmd())
+				.directory(config.getWorkingDirectory())
+				.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+
+			/*Thread t = new Thread(() -> waitForStoppedStatus(stopTimeout));
+			t.start();*/
+			var waiterForStopped = Executors.newSingleThreadExecutor()
+				.submit(() -> waitForStoppedStatus(stopTimeout));
+			try {
+				stopProcBuilder
+					.start()
+					.waitFor(stopTimeout, TimeUnit.SECONDS);
+			} catch (InterruptedException | IOException e) {
+				LOGGER.log(
+					Level.SEVERE,
+					"Error while executing stop command \""
+						+ Arrays.toString(config.getStopCmd()) + "\"",
+					e);
+			} finally {
+				// cancel the thread. stop waiting
+				//t.interrupt();
+				waiterForStopped.cancel(true);
+			}
+		}
+	}
+
+	/**
+	 * Wait for {@link ServiceStatus#STOPPED} status to appear on {@link #statusesQueue}
+	 * or destroy the process if it is not seen before the timeout
+	 * <p>
+	 * It is recommended to clear the queue before calling this method
+	 * <p>
+	 * WARNING: This will block the thread
+	 *
+	 * @param timeout number of seconds to wait before destroying the process
+	 */
+	private void waitForStoppedStatus(int timeout) {
+		try {
+			long startWaitingAt = System.currentTimeMillis();
+
+			ServiceStatus currStatus;
+			while ((currStatus = statusesQueue.poll(timeout, TimeUnit.SECONDS)) != null) {
+				if (currStatus == ServiceStatus.STOPPED) // stopped status was seen in time
+					return;
+
+				// received a status but not the STOPPED status
+				// the timeout should be updated
+				// it may not be guaranteed the timeout is precise because all these computations
+				// take time
+				long endWaitingAt = System.currentTimeMillis();
+				long elapsedSeconds = (endWaitingAt - startWaitingAt) / 1_000;
+				timeout -= elapsedSeconds;
+
+				startWaitingAt = endWaitingAt;
+			}
+		} catch (InterruptedException e) {
+			LOGGER.log(
+				Level.SEVERE,
+				"Error occurred while waiting for service "
+					+ getConfig().getColorizedName() + " to stop",
+				e
+			);
+		} finally {
+			// yes, at the end we need to be sure the process is destroyed
+			// if we call destroyProc method and STOPPED status was seeing, then destroyProc is no-op
+			// because the process doesn't exist anymore
+			destroyProc();
+		}
+	}
+
+	/**
 	 * Tries to stop the current running process (if any) and all its children processes
 	 */
-	public void destroyProc() {
-		if (proc == null)
+	private void destroyProc() {
+		if (proc == null || !proc.isAlive())
 			return;
 
 		Microstart.destroyChildrenProcesses(proc.toHandle());
@@ -375,8 +486,7 @@ public class Service implements Runnable {
 	private void changeStatus(@NotNull ServiceStatus newStatus) {
 		status = newStatus;
 
-		if (statusesQueue != null)
-			statusesQueue.offer(newStatus); // use put instead?
+		statusesQueue.offer(newStatus); // use put instead?
 
 		runHook(newStatus); // hooks shouldn't take too much time to finish
 	}
