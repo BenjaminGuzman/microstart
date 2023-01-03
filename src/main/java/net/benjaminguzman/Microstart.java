@@ -149,18 +149,20 @@ public class Microstart implements Runnable {
 			// it seems the JVM successfully handles child process destruction when SIGINT is received
 			// so let's hope it is true for any architecture and 🤞 there are no dangling process after
 			// exit
-			Group.getGroups().forEach(Group::shutdownNow);
-			Group.getGroups().forEach(group -> {
-				try {
-					group.awaitTermination(5, TimeUnit.SECONDS);
-				} catch (InterruptedException e) {
-					LOGGER.warning(
-						"Group "
-							+ group.getConfig().getName()
-							+ " couldn't be gracefully shut down"
-					);
-				}
-			});
+			Group.getGroups().stream()
+				.peek(Group::shutdownNow)
+				.forEach(group -> {
+					try {
+						group.awaitTermination(5, TimeUnit.SECONDS);
+					} catch (InterruptedException e) {
+						LOGGER.warning(
+							"Group "
+								+ group.getConfig().getName()
+								+ " couldn't be gracefully shut down"
+						);
+					}
+				});
+			Service.getServices().forEach(Service::stop);
 		}
 	}
 

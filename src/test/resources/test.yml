@@ -1,6 +1,8 @@
 services:
   - name: Test 1
     start: 'echo -e "Testing config loader...\nIt works!"'
+    stop: 'echo stopping service Test 1...'
+    stopTimeout: 1
     aliases:
       - test1
       - first
@@ -15,6 +17,8 @@ services:
 
   - name: Test 2
     start: 'echo -e "Testing config loader 2...\nIt works!"'
+    stop: SIGQUIT
+    stopTimeout: 90
     aliases:
       - test2
       - second
