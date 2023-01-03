@@ -20,6 +20,16 @@
                         "type": "string",
                         "description": "Command to start the service. You can add bash operators, e.g. \"npm run build && npm run start\" will be run as 'sh -c \"npm run build && npm run start\"' or 'cmd /c \"npm run build && npm run start\"' in windows (it may not work since cmd doesn't support && operator). Take into account that, the parent process for npm is sh (or cmd) and the parent process for sh is java, so java can handle its child process sh, but not the npm process"
                     },
+                    "stop": {
+                        "type": "string",
+                        "description": "Command to execute on exit or when service is stopped, e.g. \"docker compose down\". If one a signal name (SIGINT, SIGKILL, SIGTERM, SIGQUIT, SIGHUP, ...) is provided, then such signal is sent to the process (ONLY *NIX SYSTEMS)",
+                        "default": "SIGINT"
+                    },
+                    "stopTimeout": {
+                        "type": "number",
+                        "description": "If service (process) is not stopped after executing the stop command and waiting this number of seconds, SIGINT or SIGTERM signal will be sent to the process",
+                        "default": 5
+                    },
                     "aliases": {
                         "type": "array",
                         "description": "List of aliases for the name. With user interactive input these aliases can be useful",

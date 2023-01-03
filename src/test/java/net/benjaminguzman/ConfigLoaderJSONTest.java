@@ -50,6 +50,8 @@ class ConfigLoaderJSONTest {
 		assertNotNull(test1Config);
 		assertEquals("Test 1", test1Config.getName());
 		assertEquals("echo -e \"Testing config loader...\\nIt works!\"", test1Config.getStartCmd()[2]);
+		assertEquals("echo stopping service Test 1...", test1Config.getStopCmd()[2]);
+		assertEquals(1, test1Config.getStopTimeout());
 		assertEquals("/tmp", test1Config.getWorkingDirectory().toString());
 		assertEquals(Pattern.compile("Works", Pattern.CASE_INSENSITIVE).toString(), test1Config.getStartedPatterns().get(0).toString());
 		assertEquals(Pattern.compile("errno", Pattern.CASE_INSENSITIVE).toString(), test1Config.getErrorPatterns().get(1).toString());
@@ -66,6 +68,8 @@ class ConfigLoaderJSONTest {
 		assertNotNull(test2Config);
 		assertEquals("Test 2", test2Config.getName());
 		assertEquals("echo -e \"Testing config loader 2...\\nIt works!\"", test2Config.getStartCmd()[2]);
+		assertEquals("SIGQUIT", test2Config.getStopCmd()[0]);
+		assertEquals(90, test2Config.getStopTimeout());
 		assertEquals("/tmp", test2Config.getWorkingDirectory().toString());
 		assertEquals(Pattern.compile("Works", Pattern.CASE_INSENSITIVE).toString(), test2Config.getStartedPatterns().get(0).toString());
 		assertEquals(Pattern.compile("errno", Pattern.CASE_INSENSITIVE).toString(), test2Config.getErrorPatterns().get(1).toString());
