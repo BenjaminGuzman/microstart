@@ -104,7 +104,8 @@ public class Microstart implements Runnable {
 		try {
 			new ConfigLoader(configFile);
 		} catch (ValidationException e) {
-			System.out.println("Configuration file is invalid. Errors are these:");
+			System.out.println("Configuration file contains the following errors:");
+			System.out.println(e.getMessage());
 			e.getCausingExceptions()
 				.stream()
 				.map(ValidationException::getMessage)

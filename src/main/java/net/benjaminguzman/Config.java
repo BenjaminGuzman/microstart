@@ -42,6 +42,16 @@ public class Config {
 	}
 
 	/**
+	 * Clear (reset) all configuration values
+	 */
+	public void clear() {
+		services.clear();
+		groups.clear();
+		maxDepth = ConfigDefaults.MAX_DEPTH;
+		continueAfterError = ConfigDefaults.IGNORE_ERRORS;
+	}
+
+	/**
 	 * Adds a single service configuration to the services array (hashmap)
 	 *
 	 * @param config the config for the service to be added
