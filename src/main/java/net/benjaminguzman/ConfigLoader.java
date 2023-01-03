@@ -41,7 +41,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.*;
 import java.util.logging.Logger;
@@ -51,6 +50,8 @@ import java.util.stream.Collectors;
 public class ConfigLoader {
 	private static volatile ConfigLoader instance = null;
 
+	@NotNull
+	private final File configFile;
 	private static final Logger LOGGER = Logger.getLogger(ConfigLoader.class.getName());
 	private final JSONObject rootNode;
 
@@ -96,6 +97,7 @@ public class ConfigLoader {
 			Schema schema = SchemaLoader.load(rawSchema);
 			schema.validate(this.rootNode);
 		}
+		configFile = file;
 		instance = this;
 	}
 
@@ -113,6 +115,11 @@ public class ConfigLoader {
 	@Nullable
 	public static ConfigLoader getInstance() {
 		return instance;
+	}
+
+	@NotNull
+	public File getConfigFile() {
+		return configFile;
 	}
 
 	/**
@@ -139,6 +146,49 @@ public class ConfigLoader {
 			conf.addGroup(loadGroupConfig(((JSONObject) group).getString("name")));
 
 		return conf;
+	}
+
+	/**
+	 * Equivalent to executing {@link #refresh()} and {@link #load()} sequentially
+	 *
+	 * @return the new configuration
+	 */
+	public Config reload() throws MaxDepthExceededException, ServiceNotFoundException, InstanceAlreadyExistsException, GroupNotFoundException, IOException, CircularDependencyException {
+		refresh();
+		return load();
+	}
+
+	/**
+	 * Read configuration file again
+	 * <p>
+	 * The return value of the next call to {@link #load()} should contain the new configuration
+	 *
+	 * @see #reload()
+	 * @return itself
+	 */
+	public ConfigLoader refresh() throws InstanceAlreadyExistsException, IOException, MaxDepthExceededException, ServiceNotFoundException, GroupNotFoundException, CircularDependencyException, ValidationException {
+		// NOTE: at this point of time there are at least 2 references to this ConfigLoader object:
+		//  1. the static reference instance
+		//  2. this itself
+		// Thus, we can get all its fields by either using instance.field or this.field
+		// and that's why no NPE is thrown when passing the config file as argument to the config loader constructor
+
+		instance = null; // invalidate reference
+		// GC will collect the real object later, after the "this" reference is no longer in use.
+		// Probably after this method exits
+
+		new ConfigLoader(configFile); // create a new object and reassign the reference null-ed previously
+		assert instance != null;
+
+		// NOTE 2: In theory this code should be synchronized
+		// Since it is possible that instance reference is used at the same time this code is being executed
+		// and because instance is null, bad things may happen
+		// But, synchronizing the code is somewhat an overhead given the actual use of this method
+		// and that what was explained above is the only reason for synchronization
+		// So, just let's cross fingers and hope there are no synchronization errors 🤞
+
+		Config.getInstance().clear(); // finally clear the current loaded configuration
+		return instance;
 	}
 
 	/**
