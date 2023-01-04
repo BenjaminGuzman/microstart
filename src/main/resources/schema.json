@@ -22,8 +22,8 @@
                     },
                     "stop": {
                         "type": "string",
-                        "description": "Command to execute on exit or when service is stopped, e.g. \"docker compose down\". If one a signal name (SIGINT, SIGKILL, SIGTERM, SIGQUIT, SIGHUP, ...) is provided, then such signal is sent to the process (ONLY *NIX SYSTEMS)",
-                        "default": "SIGINT"
+                        "description": "Command to execute on exit or when service is stopped, e.g. \"docker compose down\". If one a signal name (SIGINT, SIGKILL, SIGTERM, SIGQUIT, SIGHUP, ...) is provided, then such signal is sent to the process (ONLY *NIX SYSTEMS) and all its children subprocesses",
+                        "default": "SIGTERM"
                     },
                     "stopTimeout": {
                         "type": "number",
