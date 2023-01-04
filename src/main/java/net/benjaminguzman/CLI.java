@@ -407,7 +407,7 @@ public class CLI implements Runnable {
 		}
 
 		System.out.println("Starting " + service.getConfig().getColorizedName() + " asynchronously...");
-		new ServiceThreadFactory().newThread(service).start();
+		new DaemonThreadFactory().newThread(service).start();
 	}
 
 	private void stopServiceByName(@NotNull String serviceName) {

@@ -22,7 +22,43 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ThreadFactory;
 
-public class ServiceThreadFactory implements ThreadFactory {
+/**
+ * Factory for daemon threads
+ * @see Thread#setDaemon(boolean)
+ */
+public class DaemonThreadFactory implements ThreadFactory {
+	@NotNull
+	private final String name;
+
+	private final int priority;
+
+	/**
+	 * Create a thread factory with "Service-Thread" as thread name
+	 * and default priority
+	 * @see DaemonThreadFactory(String)
+	 */
+	public DaemonThreadFactory() {
+		this("Service-Thread");
+	}
+
+	/**
+	 * Create a thread factory with thread having the given name and {@link Thread#NORM_PRIORITY}
+	 * @param threadName thread name
+	 */
+	public DaemonThreadFactory(@NotNull String threadName) {
+		this(threadName, Thread.NORM_PRIORITY);
+	}
+
+	/**
+	 * Create a thread factory with thread having the given name and priority
+	 * @param threadName thread name
+	 * @param priority thread priority
+	 */
+	public DaemonThreadFactory(@NotNull String threadName, int priority) {
+		this.name = threadName;
+		this.priority = priority;
+	}
+
 	/**
 	 * Constructs a new {@code Thread}.  Implementations may also initialize
 	 * priority, name, daemon status, {@code ThreadGroup}, etc.
@@ -33,9 +69,9 @@ public class ServiceThreadFactory implements ThreadFactory {
 	 */
 	@Override
 	public Thread newThread(@NotNull Runnable r) {
-		Thread t = new Thread(r, "Service-Thread");
+		Thread t = new Thread(r, name);
 		t.setDaemon(true);
-		t.setPriority(Thread.NORM_PRIORITY);
+		t.setPriority(priority);
 		return t;
 	}
 }

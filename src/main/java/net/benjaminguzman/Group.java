@@ -99,7 +99,7 @@ public class Group {
 		this.servicesLatch = new CountDownLatch(this.config.getServicesConfigs().size());
 		this.executorService = Executors.newFixedThreadPool(
 			this.config.getServicesConfigs().size(),
-			new ServiceThreadFactory()
+			new DaemonThreadFactory()
 		);
 
 		defaultServiceHooks.put(ServiceStatus.ERROR, this::onServiceError);

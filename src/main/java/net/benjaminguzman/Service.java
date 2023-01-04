@@ -31,6 +31,8 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Service implements Runnable {
 	private final static Logger LOGGER = Logger.getLogger(Service.class.getName());
@@ -105,7 +107,7 @@ public class Service implements Runnable {
 	 *                    not when the service process reports an error, see
 	 *                    {@link ServiceStatus#ERROR} and {@link ServiceConfig#setErrorPatterns(List)}
 	 * @throws InstanceAlreadyExistsException if a service with the same name or alias has already been
-	 * instantiated previously
+	 *                                        instantiated previously
 	 */
 	public Service(
 		@NotNull ServiceConfig config,
@@ -128,7 +130,7 @@ public class Service implements Runnable {
 	 *                      {@link ServiceStatus#STARTED}. Adding elements to the queue doesn't affect this class
 	 *                      behaviour, this class is a producer, not a consumer
 	 * @throws InstanceAlreadyExistsException if a service with the same name or alias has already been
-	 * instantiated previously
+	 *                                        instantiated previously
 	 */
 	public Service(
 		@NotNull ServiceConfig config,
@@ -359,39 +361,26 @@ public class Service implements Runnable {
 			if (Microstart.IS_WINDOWS) {
 				LOGGER.finer("Windows 😠...");
 			} else {
-				System.out.println("Sending " + signalName + " to "
-					+ getConfig().getColorizedName() + " (pid: " + proc.pid() + ")");
-
-				String[] killCmd = {"kill", "--signal", signalName, String.valueOf(proc.pid())};
-				try {
-					Runtime.getRuntime()
-						.exec(killCmd)
-						.waitFor(stopTimeout, TimeUnit.SECONDS);
-				} catch (IOException e) {
-					LOGGER.log(
-						Level.SEVERE,
-						"Error while sending " + signalName + " to " + proc.pid(),
-						e
-					);
-				} catch (InterruptedException e) {
-					LOGGER.log(
-						Level.SEVERE,
-						"Error while sending " + signalName + " to " + proc.pid() + ". Will destroy the process now",
-						e
-					);
-				}
+				LOGGER.info("Sending " + signalName + " to "
+					+ getConfig().getColorizedName() + " (pid: " + proc.pid() + ") "
+					+ "and all subprocesses");
+				sendSignal(signalName);
 			}
 
-			destroyProc(); // destroy the process anyway, if the kill command worked, then is a no-op
+			// destroy the process anyway, if the signal was processed correctly,
+			// then this should be a no-op
+			destroyProc();
 		} else { // cmd is really a command
-			System.out.println("Executing stop command for " + getConfig().getColorizedName());
+			LOGGER.info("Executing stop command for " + getConfig().getColorizedName());
 			ProcessBuilder stopProcBuilder = new ProcessBuilder(config.getStopCmd())
 				.directory(config.getWorkingDirectory())
 				.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 
 			/*Thread t = new Thread(() -> waitForStoppedStatus(stopTimeout));
 			t.start();*/
-			var waiterForStopped = Executors.newSingleThreadExecutor()
+			var waiterForStopped = Executors.newSingleThreadExecutor(
+				new DaemonThreadFactory("Waiter-For-Stopped-Status")
+			)
 				.submit(() -> waitForStoppedStatus(stopTimeout));
 			try {
 				stopProcBuilder
@@ -402,11 +391,17 @@ public class Service implements Runnable {
 					Level.SEVERE,
 					"Error while executing stop command \""
 						+ Arrays.toString(config.getStopCmd()) + "\"",
-					e);
+					e
+				);
 			} finally {
 				// cancel the thread. stop waiting
 				//t.interrupt();
 				waiterForStopped.cancel(true);
+
+				// at the end we need to be sure the process is destroyed
+				// if we call destroyProc method and STOPPED status was seen,
+				// then destroyProc is a no-op because the process doesn't exist anymore
+				destroyProc();
 			}
 		}
 	}
@@ -440,18 +435,50 @@ public class Service implements Runnable {
 
 				startWaitingAt = endWaitingAt;
 			}
-		} catch (InterruptedException e) {
+		} catch (InterruptedException ignored) {
+		}
+	}
+
+	/**
+	 * @return the pids for all the subprocesses of {@link #proc} and itself (pid of {@link #proc} is also present
+	 * in the returned list). List order is postorder
+	 * (try to visualize the process hierarchy as a complete binary tree.
+	 * Example: subsubproc subsubproc subproc subproc proc)
+	 */
+	private List<Long> pids(@NotNull ProcessHandle p, @NotNull List<Long> pidsList) {
+		p.children().forEach(childP -> pids(childP, pidsList));
+		pidsList.add(p.pid());
+		return pidsList;
+	}
+
+	/**
+	 * Send signal to {@link #proc} and all child processes
+	 * @param signalName signal name to send
+	 */
+	private void sendSignal(@NotNull String signalName) {
+		if (proc == null || !proc.isAlive())
+			return;
+
+		// get a list of all process ids that should receive the signal
+		List<Long> allPids = pids(proc.toHandle(), new ArrayList<>());
+		LOGGER.fine("Sending " + signalName + " to: " + allPids);
+
+		// create kill command: kill --signal SIGNAME pid1 pid2 pid3...
+		String[] killCmd = new String[3 + allPids.size()];
+		killCmd[0] = "kill";
+		killCmd[1] = "--signal";
+		killCmd[2] = signalName;
+		for (int i = 0; i < allPids.size(); ++i)
+			killCmd[i + 3] = String.valueOf(allPids.get(i));
+
+		try {
+			Runtime.getRuntime().exec(killCmd).waitFor(2, TimeUnit.SECONDS);
+		} catch (IOException | InterruptedException e) {
 			LOGGER.log(
 				Level.SEVERE,
-				"Error occurred while waiting for service "
-					+ getConfig().getColorizedName() + " to stop",
+				"Error while sending " + signalName + " to " + allPids,
 				e
 			);
-		} finally {
-			// yes, at the end we need to be sure the process is destroyed
-			// if we call destroyProc method and STOPPED status was seeing, then destroyProc is no-op
-			// because the process doesn't exist anymore
-			destroyProc();
 		}
 	}
 
