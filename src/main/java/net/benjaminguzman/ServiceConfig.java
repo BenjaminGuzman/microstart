@@ -78,7 +78,7 @@ public class ServiceConfig {
 	private String[] startCmd = {"npm", "run", "start"};
 
 	@NotNull
-	private String[] stopCmd = {"SIGINT"};
+	private String[] stopCmd = {"SIGTERM"};
 
 	private int stopTimeout = 5;
 

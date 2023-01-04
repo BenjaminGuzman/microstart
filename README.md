@@ -239,6 +239,11 @@ As you can see, each group has:
 [CASE_INSENSITIVE](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/regex/Pattern.html#CASE_INSENSITIVE)
 flag is **added to all patterns** (both `startedPatterns` and `errorPatterns`)
 
+**Once processes are started it is recommended to manage them within microstart**, i.e. don't manage processes externally 
+(don't send signals manually with kill command or so) because you may end up with orphan processes.
+A concrete example of this is when you use `npm start` as the start command. Killing the npm process doesn't kill the 
+nodejs process!
+
 ## YAML/JSON config properties
 
 For all available JSON/YAML properties, description and constraints see [schema.json](src/main/resources/schema.json)
