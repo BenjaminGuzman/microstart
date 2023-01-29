@@ -89,9 +89,9 @@ public class ServiceConfig {
 	private File stopStdin;
 
 	@NotNull
-	private String colorizedName = CommandLine.Help.Ansi.ON.string("@|white " + name + "|@");
+	private String colorizedName = CommandLine.Help.Ansi.AUTO.string("@|white " + name + "|@");
 
-	private String colorizedErrorName = CommandLine.Help.Ansi.ON.string("@|red,blink,bold " + name + "|@");
+	private String colorizedErrorName = CommandLine.Help.Ansi.AUTO.string("@|red,blink,bold " + name + "|@");
 
 	/**
 	 * @return service name used to identify unequivocally the service within the application
@@ -348,12 +348,12 @@ public class ServiceConfig {
 		};
 
 		String normalizedColor = "fg(" + rgbNorm[0] + ";" + rgbNorm[1] + ";" + rgbNorm[2] + ")";
-		colorizedName = CommandLine.Help.Ansi.ON.string("@|" + normalizedColor + " " + name + "|@");
+		colorizedName = CommandLine.Help.Ansi.AUTO.string("@|" + normalizedColor + " " + name + "|@");
 		setColorizedErrorName();
 	}
 
 	private void setColorizedErrorName() {
-		colorizedErrorName = CommandLine.Help.Ansi.ON.string("@|red,blink,bold " + name + "|@");
+		colorizedErrorName = CommandLine.Help.Ansi.AUTO.string("@|red,blink,bold " + name + "|@");
 	}
 
 	@Override

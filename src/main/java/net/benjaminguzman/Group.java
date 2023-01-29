@@ -166,8 +166,8 @@ public class Group {
 				service = new Service(serviceConfig, defaultServiceHooks, this::onException);
 			else // service has already been loaded, and probably is running
 				if (service.getStatus().isRunning()) {
-					System.out.println(service.getConfig()
-						.getColorizedName() + " has already started");
+					CLI.printWarning(service.getConfig().getColorizedName() +
+						" has already started");
 
 					// countdown the latch and don't submit the service to execution
 					// because it is already running
