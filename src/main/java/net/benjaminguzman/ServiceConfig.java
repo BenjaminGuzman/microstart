@@ -85,6 +85,9 @@ public class ServiceConfig {
 	@Nullable
 	private File stdin;
 
+	@Nullable
+	private File stopStdin;
+
 	@NotNull
 	private String colorizedName = CommandLine.Help.Ansi.ON.string("@|white " + name + "|@");
 
@@ -287,7 +290,7 @@ public class ServiceConfig {
 	}
 
 	/**
-	 * @param stdin the file containing the data that will be passed to the service process' stdin
+	 * @param stdin the file containing the data that will be passed to the service process' stdin start command
 	 */
 	public ServiceConfig setStdin(@Nullable File stdin) {
 		this.stdin = stdin;
@@ -297,6 +300,19 @@ public class ServiceConfig {
 	@Nullable
 	public File getStdin() {
 		return stdin;
+	}
+
+	/**
+	 * @param stdin the file containing the data that will be passed to the service process' stdin stop command
+	 */
+	public ServiceConfig setStopStdin(@Nullable File stdin) {
+		this.stopStdin = stdin;
+		return this;
+	}
+
+	@Nullable
+	public File getStopStdin() {
+		return stopStdin;
 	}
 
 	/**

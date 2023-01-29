@@ -5,6 +5,7 @@
         "start": "echo -e \"Testing config loader...\\nIt works!\"",
         "stop": "echo stopping service Test 1...",
         "stopTimeout": 1,
+        "stopStdin": "src/test/resources/mirror.stdin",
         "aliases": ["test1", "first"],
         "color": "0x00ff00",
         "workDir": "/tmp",

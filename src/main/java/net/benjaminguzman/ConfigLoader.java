@@ -294,8 +294,8 @@ public class ConfigLoader {
 	@NotNull
 	private ServiceConfig loadServiceConfigJSON(@NotNull String name) throws FileNotFoundException, JSONException,
 		ServiceNotFoundException {
-		JSONObject serviceJSONConfig = getItemByNameOrAlias(name, rootNode.getJSONArray("services"));
-		if (serviceJSONConfig == null)
+		JSONObject jsonConfig = getItemByNameOrAlias(name, rootNode.getJSONArray("services"));
+		if (jsonConfig == null)
 			throw new ServiceNotFoundException("\"" + name + "\"" + " service was not found");
 
 		// by now we know the current json node is the one the user wants
@@ -303,21 +303,21 @@ public class ConfigLoader {
 		ServiceConfig config = new ServiceConfig();
 
 		// set required fields
-		config.setName(serviceJSONConfig.getString("name"));
-		config.setStartCmd(serviceJSONConfig.getString("start"));
+		config.setName(jsonConfig.getString("name"));
+		config.setStartCmd(jsonConfig.getString("start"));
 
 		// set optional fields
-		if (serviceJSONConfig.has("aliases"))
-			config.setAliases(list2StringList(serviceJSONConfig.getJSONArray("aliases").toList()));
+		if (jsonConfig.has("aliases"))
+			config.setAliases(list2StringList(jsonConfig.getJSONArray("aliases").toList()));
 
-		if (serviceJSONConfig.has("stop"))
-			config.setStopCmd(serviceJSONConfig.getString("stop"));
+		if (jsonConfig.has("stop"))
+			config.setStopCmd(jsonConfig.getString("stop"));
 
-		if (serviceJSONConfig.has("stopTimeout"))
-			config.setStopTimeout(serviceJSONConfig.getInt("stopTimeout"));
+		if (jsonConfig.has("stopTimeout"))
+			config.setStopTimeout(jsonConfig.getInt("stopTimeout"));
 
-		if (serviceJSONConfig.has("stdin")) {
-			File stdinFile = new File(serviceJSONConfig.getString("stdin"));
+		if (jsonConfig.has("stdin")) {
+			File stdinFile = new File(jsonConfig.getString("stdin"));
 			if (!stdinFile.exists() || !stdinFile.canRead() || !stdinFile.isFile())
 				throw new FileNotFoundException(
 					"\"" + stdinFile.getAbsolutePath() + "\" either " +
@@ -327,18 +327,29 @@ public class ConfigLoader {
 			config.setStdin(stdinFile);
 		}
 
-		if (serviceJSONConfig.has("color")) {
+		if (jsonConfig.has("stopStdin")) {
+			File stdinFile = new File(jsonConfig.getString("stopStdin"));
+			if (!stdinFile.exists() || !stdinFile.canRead() || !stdinFile.isFile())
+				throw new FileNotFoundException(
+					"\"" + stdinFile.getAbsolutePath() + "\" either " +
+						"doesn't exist, is not a regular file, or can't be read"
+				);
+
+			config.setStopStdin(stdinFile);
+		}
+
+		if (jsonConfig.has("color")) {
 			Color color;
-			if (serviceJSONConfig.get("color") instanceof String) // color is given as string
-				color = Color.decode(serviceJSONConfig.getString("color"));
+			if (jsonConfig.get("color") instanceof String) // color is given as string
+				color = Color.decode(jsonConfig.getString("color"));
 			else // color is given as an integer
-				color = new Color(serviceJSONConfig.getInt("color"));
+				color = new Color(jsonConfig.getInt("color"));
 
 			config.setColor(color);
 		}
 
-		if (serviceJSONConfig.has("workDir")) {
-			File workDir = new File(serviceJSONConfig.getString("workDir"));
+		if (jsonConfig.has("workDir")) {
+			File workDir = new File(jsonConfig.getString("workDir"));
 			if (!workDir.exists() || !workDir.isDirectory() || !workDir.canRead())
 				throw new FileNotFoundException(
 					"\"" + workDir.getAbsolutePath() + "\" either doesn't exist," +
@@ -348,9 +359,9 @@ public class ConfigLoader {
 			config.setWorkingDirectory(workDir);
 		}
 
-		if (serviceJSONConfig.has("startedPatterns"))
+		if (jsonConfig.has("startedPatterns"))
 			config.setStartedPatterns(
-				list2StringList(serviceJSONConfig.getJSONArray("startedPatterns").toList())
+				list2StringList(jsonConfig.getJSONArray("startedPatterns").toList())
 					.stream()
 					.map(patternStr -> Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE))
 					.collect(Collectors.toList())
@@ -362,9 +373,9 @@ public class ConfigLoader {
 					" may result on the application hanging up indefinitely"
 			);
 
-		if (serviceJSONConfig.has("errorPatterns"))
+		if (jsonConfig.has("errorPatterns"))
 			config.setErrorPatterns(
-				list2StringList(serviceJSONConfig.getJSONArray("errorPatterns").toList())
+				list2StringList(jsonConfig.getJSONArray("errorPatterns").toList())
 					.stream()
 					.map(patternStr -> Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE))
 					.collect(Collectors.toList())
@@ -376,6 +387,14 @@ public class ConfigLoader {
 					" may result on the application hanging up indefinitely if an error" +
 					" occurs"
 			);
+
+		// show more warnings if optional prop value were defined for a required prop that was not defined
+		String[] optionalProps = {"stopTimeOut", "stopStdin"};
+		if (!jsonConfig.has("stop") && Arrays.stream(optionalProps).anyMatch(jsonConfig::has))
+			Arrays.stream(optionalProps).filter(jsonConfig::has).forEach(optionalProp -> {
+				LOGGER.warning("\"" + optionalProp + "\" property was defined but no" +
+					" \"stop\" command was given");
+			});
 
 		return config;
 	}
