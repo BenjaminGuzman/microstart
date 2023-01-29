@@ -34,12 +34,14 @@ import java.util.logging.Logger;
 @CommandLine.Command(
 	name = "microstart",
 	description = "Start processes groups with dependencies in a single command",
-	version = "microstart v0.8.1",
-	header = "Copyright (c) 2021. Benjamín Antonio Velasco Guzmán\n" +
-		"This program comes with ABSOLUTELY NO WARRANTY.\n" +
-		"This is free software, and you are welcome to redistribute it\n" +
-		"under certain conditions.\n" +
-		"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>\n",
+	version = "microstart v1.1.1",
+	header = """
+		Copyright (c) 2021-2023. Benjamín Antonio Velasco Guzmán
+		This program comes with ABSOLUTELY NO WARRANTY.
+		This is free software, and you are welcome to redistribute it
+		under certain conditions.
+		License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>
+		""",
 	mixinStandardHelpOptions = true
 )
 public class Microstart implements Runnable {
@@ -65,6 +67,13 @@ public class Microstart implements Runnable {
 			"happened. Overrides ignoreErrors key in config file"
 	)
 	private boolean ignoreErrors;
+
+	@CommandLine.Option(
+		names = {"--colors"},
+		description = "Use colored output. Default true",
+		defaultValue = "true"
+	)
+	private boolean useColors;
 
 	/**
 	 * If true, and an error occurred while running a service or group, the application will continue execution
@@ -92,13 +101,15 @@ public class Microstart implements Runnable {
 
 	@Override
 	public void run() {
-		System.out.println(
-			"Copyright (c) 2021. Benjamín Antonio Velasco Guzmán\n" +
-				"This program comes with ABSOLUTELY NO WARRANTY.\n" +
-				"This is free software, and you are welcome to redistribute it\n" +
-				"under certain conditions.\n" +
-				"License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>\n"
-		);
+		System.setProperty("picocli.ansi", useColors ? "true" : "false");
+
+		System.out.println("""
+			Copyright (c) 2021-2023. Benjamín Antonio Velasco Guzmán
+			This program comes with ABSOLUTELY NO WARRANTY.
+			This is free software, and you are welcome to redistribute it
+			under certain conditions.
+			License GPLv3: GNU GPL version 3 <http://gnu.org/licenses/gpl.html>
+			""");
 
 		// load configuration
 		try {

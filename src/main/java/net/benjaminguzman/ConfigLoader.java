@@ -389,9 +389,9 @@ public class ConfigLoader {
 			);
 
 		// show more warnings if optional prop value were defined for a required prop that was not defined
-		String[] optionalProps = {"stopTimeOut", "stopStdin"};
-		if (!jsonConfig.has("stop") && Arrays.stream(optionalProps).anyMatch(jsonConfig::has))
-			Arrays.stream(optionalProps).filter(jsonConfig::has).forEach(optionalProp -> {
+		List<String> optionalProps = List.of("stopTimeout", "stopStdin");
+		if (!jsonConfig.has("stop") && optionalProps.stream().anyMatch(jsonConfig::has))
+			optionalProps.stream().filter(jsonConfig::has).forEach(optionalProp -> {
 				LOGGER.warning("\"" + optionalProp + "\" property was defined but no" +
 					" \"stop\" command was given");
 			});
