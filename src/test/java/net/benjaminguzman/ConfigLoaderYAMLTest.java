@@ -82,6 +82,7 @@ class ConfigLoaderYAMLTest {
 		assertEquals("echo stopping service Test 1...", test1Config.getStopCmd()[2]);
 		assertEquals(1, test1Config.getStopTimeout());
 		assertEquals("/tmp", test1Config.getWorkingDirectory().toString());
+		assertEquals("src/test/resources/mirror.stdin", test1Config.getStopStdin().toString());
 		assertEquals(Pattern.compile("Works", Pattern.CASE_INSENSITIVE)
 			.toString(), test1Config.getStartedPatterns().get(0).toString());
 		assertEquals(Pattern.compile("errno", Pattern.CASE_INSENSITIVE)
