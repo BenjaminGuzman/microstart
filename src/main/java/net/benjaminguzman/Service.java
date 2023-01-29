@@ -371,10 +371,16 @@ public class Service implements Runnable {
 			// then this should be a no-op
 			destroyProc();
 		} else { // cmd is really a command
-			LOGGER.info("Executing stop command for " + getConfig().getColorizedName());
+			LOGGER.info("Executing stop command for " + getConfig().getColorizedName() + " (pid: " + proc.pid() + ")");
 			ProcessBuilder stopProcBuilder = new ProcessBuilder(config.getStopCmd())
 				.directory(config.getWorkingDirectory())
-				.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+				.redirectOutput(ProcessBuilder.Redirect.INHERIT)
+				.redirectError(ProcessBuilder.Redirect.INHERIT);
+
+			if (config.getStopStdin() != null) {
+				stopProcBuilder.redirectInput(config.getStopStdin());
+				//LOGGER.info(config.getStopStdin().getAbsolutePath() + " will serve as stdin for " + config.getColorizedName());
+			}
 
 			/*Thread t = new Thread(() -> waitForStoppedStatus(stopTimeout));
 			t.start();*/

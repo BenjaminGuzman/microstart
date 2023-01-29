@@ -68,7 +68,11 @@
                     },
                     "stdin": {
                         "type": "string",
-                        "description": "If you want to provide some data to the service process, put it inside a file and it'll be redirected to the process"
+                        "description": "If you want to provide some data to the service process start command, put it inside a file and it will be redirected to the process"
+                    },
+                    "stopStdin": {
+                        "type": "string",
+                        "description": "If you want to provide some data to the service process stop command, put it inside a file and it will be redirected to the process"
                     }
                 }
             }
