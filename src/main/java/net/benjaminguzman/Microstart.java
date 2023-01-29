@@ -69,11 +69,11 @@ public class Microstart implements Runnable {
 	private boolean ignoreErrors;
 
 	@CommandLine.Option(
-		names = {"--colors"},
-		description = "Use colored output. Default true",
-		defaultValue = "true"
+		names = {"--no-colors"},
+		description = "Don't use coloured output",
+		defaultValue = "false"
 	)
-	private boolean useColors;
+	private boolean noColors;
 
 	/**
 	 * If true, and an error occurred while running a service or group, the application will continue execution
@@ -101,7 +101,7 @@ public class Microstart implements Runnable {
 
 	@Override
 	public void run() {
-		System.setProperty("picocli.ansi", useColors ? "true" : "false");
+		System.setProperty("picocli.ansi", noColors ? "false" : "true");
 
 		System.out.println("""
 			Copyright (c) 2021-2023. Benjamín Antonio Velasco Guzmán
@@ -115,15 +115,15 @@ public class Microstart implements Runnable {
 		try {
 			new ConfigLoader(configFile);
 		} catch (ValidationException e) {
-			System.out.println("Configuration file contains the following errors:");
-			System.out.println(e.getMessage());
+			CLI.printError("Configuration file contains the following errors:");
+			CLI.printError(e.getMessage());
 			e.getCausingExceptions()
 				.stream()
 				.map(ValidationException::getMessage)
-				.forEach(System.out::println);
+				.forEach(CLI::printError);
 			return;
 		} catch (FileNotFoundException | NoSuchFileException e) {
-			System.out.println(
+			CLI.printError(
 				"Config file " + configFile + " doesn't exist. Absolute path: " +
 					new File(configFile).getAbsolutePath()
 			);

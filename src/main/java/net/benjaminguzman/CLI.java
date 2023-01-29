@@ -214,7 +214,6 @@ public class CLI implements Runnable {
 			return false;
 		}
 
-		//System.out.println("Command \"" + cmd + "\" was not understood. Type \"help\" or \"h\" to print help");
 		System.out.println("Forwarding command \"" + cmd + "\" to OS...");
 		try {
 			// this is the same code used by OpenJDK implementation for Runtime.exec(String)
@@ -223,8 +222,6 @@ public class CLI implements Runnable {
 			for (int i = 0; st.hasMoreTokens(); i++)
 				cmdarray[i] = st.nextToken();
 
-			// System.out.println("Control will also be forwarded to command.\n" +
-			// 	"When the process is dead control will return to microstart");
 			new ProcessBuilder()
 				.command(cmdarray)
 				.inheritIO()
@@ -251,7 +248,7 @@ public class CLI implements Runnable {
 				.forEach(this::loadServiceByName);
 		} catch (ServiceNotFoundException | FileNotFoundException | MaxDepthExceededException |
 			 GroupNotFoundException | CircularDependencyException e) {
-			System.out.println(CommandLine.Help.Ansi.AUTO.string("@|red " + e.getMessage() + "|@"));
+			printError(e.getMessage());
 		}
 	}
 
@@ -264,7 +261,7 @@ public class CLI implements Runnable {
 			.anyMatch(service -> service.getStatus().isRunning());
 
 		if (notSafe) {
-			System.out.println("It is not safe to reload since there are services running");
+			printError("It is not safe to reload since there are services running");
 			return;
 		}
 
@@ -277,27 +274,27 @@ public class CLI implements Runnable {
 			Group.clear(); // remove loaded groups
 			Service.clear(); // remove loaded services
 
-			System.out.println("Configuration successfully reloaded");
+			printSuccess("Configuration successfully reloaded");
 		} catch (FileNotFoundException | NoSuchFileException e) {
-			System.out.println("Config file was deleted and doesn't exist anymore");
+			printError("Configuration file was deleted");
 		} catch (ValidationException e) {
 			ConfigLoader configLoader = ConfigLoader.getInstance();
 			if (configLoader == null)
-				System.out.println("Configuration file contains the following errors:");
+				printError("Configuration file contains the following errors:");
 			else
-				System.out.println("Configuration file "
-					+ configLoader.getConfigFile().getAbsolutePath()
-					+ " contains the following errors:");
+				printError("Configuration file " +
+					configLoader.getConfigFile().getAbsolutePath() +
+					" contains the following errors:");
 
-			System.out.println(e.getMessage());
+			printError(e.getMessage());
 			e.getCausingExceptions()
 				.stream()
 				.map(ValidationException::getMessage)
-				.forEach(System.out::println);
+				.forEach(CLI::printError);
 		} catch (MaxDepthExceededException | GroupNotFoundException | IOException |
 			 CircularDependencyException |
 			 InstanceAlreadyExistsException | ServiceNotFoundException e) {
-			System.out.println(e.getMessage());
+			printError(e.getMessage());
 		}
 	}
 
@@ -321,8 +318,8 @@ public class CLI implements Runnable {
 			);
 		} catch (MaxDepthExceededException | GroupNotFoundException | CircularDependencyException |
 			 FileNotFoundException | ServiceNotFoundException e) {
-			System.out.println("Couldn't load group \"" + groupName + "\"");
-			System.out.println(e.getMessage());
+			printError("Couldn't load group \"" + groupName + "\"");
+			printError(e.getMessage());
 		} catch (InstanceAlreadyExistsException e) {
 			LOGGER.log(Level.SEVERE, "Programming error❗", e);
 		}
@@ -349,7 +346,7 @@ public class CLI implements Runnable {
 				LOGGER.log(Level.SEVERE, "Programming error❗", e);
 			}
 		else
-			System.out.println("Group \"" + groupName + "\" is already running");
+			printWarning("Group \"" + groupName + "\" is already running");
 	}
 
 	private void stopGroupByName(@NotNull String groupName) {
@@ -359,7 +356,7 @@ public class CLI implements Runnable {
 		Group group = Group.forName(groupName);
 
 		if (group == null) { // group has not been loaded, there is nothing to do
-			System.out.println("Group " + groupName + " has not been loaded");
+			printError("Group " + groupName + " has not been loaded");
 			return;
 		}
 
@@ -367,24 +364,24 @@ public class CLI implements Runnable {
 		if (group.isUp()) // if the group is up, stop it
 			group.shutdownNow();
 		else
-			System.out.println("Group \"" + groupName + "\" has been loaded but it is not running");
+			printWarning("Group \"" + groupName + "\" has been loaded but it is not running");
 	}
 
 	private void groupStatusByName(@NotNull String groupName) {
 		if (isGroupNameBlank(groupName))
 			return;
 
-		Group group = Group.forName(groupName);
+		Group group = getGroupByName(groupName);
 
 		if (group == null) { // group has not been loaded, there is nothing to do
-			System.out.println("Group " + groupName + " has not been loaded");
+			printError("Group \"" + groupName + "\" has not been loaded");
 			return;
 		}
 
 		GroupConfig groupConfig = group.getConfig();
 
 		// print status for services directly on this group
-		System.out.println("Group " + groupConfig.getName() + " status:");
+		System.out.println("Group \"" + groupName + "\" status:");
 		group.getConfig()
 			.getServicesConfigs()
 			.stream()
@@ -399,7 +396,7 @@ public class CLI implements Runnable {
 		if (dependenciesStr.isEmpty())
 			return;
 
-		System.out.println("Group " + groupConfig.getName() + " depends on groups " + dependenciesStr);
+		System.out.println("Group \"" + groupName + "\" depends on groups " + dependenciesStr);
 		groupConfig.getDependenciesConfigs().forEach(g -> groupStatusByName(g.getName()));
 	}
 
@@ -423,7 +420,7 @@ public class CLI implements Runnable {
 			service = new Service(serviceConfig, new HashMap<>(), (s, e) -> {
 			});
 		} catch (FileNotFoundException | ServiceNotFoundException e) {
-			System.out.println(e.getMessage());
+			printError(e.getMessage());
 		} catch (InstanceAlreadyExistsException e) {
 			LOGGER.log(Level.SEVERE, "Programming error❗", e);
 		}
@@ -440,12 +437,12 @@ public class CLI implements Runnable {
 			service = loadServiceByName(serviceName);
 			if (service == null) // service couldn't be successfully loaded
 				return;
-			System.out.println("Service " + service.getConfig().getColorizedName() + " loaded");
+			System.out.println("Service " + service.getConfig().getColorizedName() + "successfully loaded");
 		}
 
 		// by now, the service has been loaded
 		if (service.getStatus().isRunning()) {
-			System.out.println(
+			printWarning(
 				"Service " + service.getConfig().getColorizedName() + " can't be run now." +
 					" Current status: " + service.getStatus()
 			);
@@ -463,7 +460,7 @@ public class CLI implements Runnable {
 		Service service = Service.forName(serviceName);
 
 		if (service == null) { // service has not been loaded, therefore it is not running
-			System.out.println("Service " + serviceName + " hasn't been loaded and it can't be stopped");
+			printError("Service \"" + serviceName + "\" hasn't been loaded");
 			return;
 		}
 
@@ -481,7 +478,8 @@ public class CLI implements Runnable {
 	private void serviceStatusByName(@NotNull String serviceName) {
 		if (serviceName.isBlank()) { // show status for all services
 			if (Service.getServices().isEmpty()) {
-				System.out.println("No service has been loaded. Try the load command");
+				printError("No service has been loaded");
+				System.out.println("Try the load command");
 				return;
 			}
 
@@ -532,7 +530,7 @@ public class CLI implements Runnable {
 		Service service = Service.forName(serviceName);
 
 		if (service == null) { // service has not been loaded, therefore it is not running
-			System.out.println("Service " + serviceName + " hasn't been loaded");
+			printError("Service \"" + serviceName + "\" hasn't been loaded");
 			return;
 		}
 
@@ -541,12 +539,13 @@ public class CLI implements Runnable {
 
 	/**
 	 * Check the given service name is blank and print error message if needed
+	 *
 	 * @param serviceName string to be validated
 	 * @return true if service name is blank, false otherwise
 	 */
 	private boolean isServiceNameBlank(@NotNull String serviceName) {
 		if (serviceName.isBlank()) {
-			System.out.println("You must provide a service name or alias");
+			printError("You must provide a service name or alias");
 			System.out.println("To see a list of available services use the status command");
 			return true;
 		}
@@ -555,15 +554,32 @@ public class CLI implements Runnable {
 
 	/**
 	 * Check the given group name is blank and print error message if needed
+	 *
 	 * @param groupName string to be validated
 	 * @return true if group name is blank, false otherwise
 	 */
 	private boolean isGroupNameBlank(@NotNull String groupName) {
 		if (groupName.isBlank()) {
-			System.out.println("You must provide a group name or alias");
+			printError("You must provide a group name or alias");
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Check if group exists and return it if it does exist
+	 * If it doesn't exist, show error
+	 * @param groupName group name
+	 * @return null if group doesn't exist or, if it does exist, the actual group related to that group name
+	 */
+	private Group getGroupByName(@NotNull String groupName) {
+		Group group = Group.forName(groupName);
+
+		if (group == null) {
+			printError("Group \"" + groupName + "\" has not been loaded");
+			return null;
+		}
+		return group;
 	}
 
 	private void printDot(@NotNull String filename, @NotNull Config config) {
@@ -577,7 +593,7 @@ public class CLI implements Runnable {
 				System.out.println(dotCode);
 			else // write to file
 				Files.writeString(Path.of(filename), dotCode);
-			String cmd = CommandLine.Help.Ansi.ON.string("@|white,bold dot -Tsvg " + filename + "|@");
+			String cmd = CommandLine.Help.Ansi.AUTO.string("@|white,bold dot -Tsvg " + filename + "|@");
 			System.out.println(
 				"Dot code has been written to " + filename
 					+ "\nRun " + cmd + " to obtain a nice svg image"
@@ -589,63 +605,90 @@ public class CLI implements Runnable {
 	}
 
 	private void printHelp() {
-		String promptStatuses = CommandLine.Help.Ansi.ON.string(
+		String promptStatuses = CommandLine.Help.Ansi.AUTO.string(
 			String.format(
-    				"""
-				@|white,bold CLI prompt statuses:|@
-				  • %s: Ready to read commands
-				  • %s: Waiting a service or group to start. Can't read commands
-				  • %s: Exiting the application. Bye, bye
-				""", readySymbol, waitingSymbol, byeSymbol
+				"""
+					@|white,bold CLI prompt statuses:|@
+					  • %s: Ready to read commands
+					  • %s: Waiting a service or group to start. Can't read commands
+					  • %s: Exiting the application. Bye, bye
+					""", readySymbol, waitingSymbol, byeSymbol
 			)
 		);
-		String availableCommands = CommandLine.Help.Ansi.ON.string(
-   			"""
-			@|white,bold Available commands:|@
-			  @|white,underline Group commands:|@
-			    • @|blue,bold group (start|stop)|@ | @|blue,bold (start|stop) group|@ @|cyan,underline <group name or alias>|@
-			        Start or stop a group service.
-			    • @|blue,bold group status|@ | @|blue,bold status group|@ @|cyan,underline <group name or alias>|@
-			        Show the status of a group service.
-			        Status will also be shown for group's dependencies
-			
-			  @|white,underline Singleton service commands:|@
-			    • @|blue,bold start|@ | @|blue,bold stop|@ @|cyan,underline <service name or alias>|@
-			        Start or stop a singleton service.
-			    • @|blue,bold status|@ @|cyan,underline [<service name or alias>]|@
-			        Show the status of a service.
-			        If service name or alias is not provided, all services' status will be shown.
-			
-			  @|white,underline Configuration commands:|@
-			    • @|blue,bold load|@
-			        Load all services. Useful to validate config.
-			        It may produce duplicated output, but that's normal.
-			    • @|blue,bold reload|@
-			        Reload configuration from configuration file.
-			    • @|blue,bold print|@ @|cyan,underline <filename>|@
-			        Convert configuration to dot (graphviz) code and write it to the specified file.
-			        If "-" is used as file, output will be printed to standard output.
-			        Useful to obtain an overview of the microservices dependency graph.
-			
-			  @|white,underline Miscellaneous commands:|@
-			    • @|blue,bold quit|@ | @|blue,bold exit|@ | @|blue,bold q|@
-			        Exit the application (all started processes will be stopped).
-			    • @|blue,bold help|@ | @|blue,bold h |@
-			        Print this help.
+		String availableCommands = CommandLine.Help.Ansi.AUTO.string(
 			"""
+				@|white,bold Available commands:|@
+				  @|white,underline Group commands:|@
+				    • @|blue,bold group (start|stop)|@ | @|blue,bold (start|stop) group|@ @|cyan,underline <group name or alias>|@
+				        Start or stop a group service.
+				    • @|blue,bold group status|@ | @|blue,bold status group|@ @|cyan,underline <group name or alias>|@
+				        Show the status of a group service.
+				        Status will also be shown for group's dependencies
+							
+				  @|white,underline Singleton service commands:|@
+				    • @|blue,bold start|@ | @|blue,bold stop|@ @|cyan,underline <service name or alias>|@
+				        Start or stop a singleton service.
+				    • @|blue,bold status|@ @|cyan,underline [<service name or alias>]|@
+				        Show the status of a service.
+				        If service name or alias is not provided, all services' status will be shown.
+							
+				  @|white,underline Configuration commands:|@
+				    • @|blue,bold load|@
+				        Load all services. Useful to validate config.
+				        It may produce duplicated output, but that's normal.
+				    • @|blue,bold reload|@
+				        Reload configuration from configuration file.
+				    • @|blue,bold print|@ @|cyan,underline <filename>|@
+				        Convert configuration to dot (graphviz) code and write it to the specified file.
+				        If "-" is used as file, output will be printed to standard output.
+				        Useful to obtain an overview of the microservices dependency graph.
+							
+				  @|white,underline Miscellaneous commands:|@
+				    • @|blue,bold quit|@ | @|blue,bold exit|@ | @|blue,bold q|@
+				        Exit the application (all started processes will be stopped).
+				    • @|blue,bold help|@ | @|blue,bold h |@
+				        Print this help.
+				"""
 		);
 		String extraInfo = String.format(
-   			"""
-			You can input multiple commands if you separate them by '%s'.
-			Example: "start <service name> %s status <service name>"
-			They'll execute sequentially.
-			
-			You can also execute any command your OS is capable to handle.
-			Example: "bash"
-			Control will be forwarded to that command.""",
+			"""
+				You can input multiple commands if you separate them by '%s'.
+				Example: "start <service name> %s status <service name>"
+				They'll execute sequentially.
+							
+				You can also execute any command your OS is capable to handle.
+				Example: "bash"
+				Control will be forwarded to that command.""",
 			cmdSeparator,
 			cmdSeparator
 		);
 		System.out.println(promptStatuses + "\n" + availableCommands + "\n" + extraInfo);
+	}
+
+	/**
+	 * Same as println method from {@link System#out} but using green coloured output
+	 * @param msg message to be printed
+	 */
+	public static void printSuccess(@NotNull String msg) {
+		String out = CommandLine.Help.Ansi.AUTO.string("@|green,bold " + msg + "|@");
+		System.out.println(out);
+	}
+
+	/**
+	 * Same as println method from {@link System#out} but using red coloured output
+	 * @param msg message to be printed
+	 */
+	public static void printError(@NotNull String msg) {
+		String out = CommandLine.Help.Ansi.AUTO.string("@|red " + msg + "|@");
+		System.out.println(out);
+	}
+
+	/**
+	 * Same as println method from {@link System#out} but using yellow coloured output
+	 * @param msg message to be printed
+	 */
+	public static void printWarning(@NotNull String msg) {
+		String out = CommandLine.Help.Ansi.AUTO.string("@|yellow " + msg + "|@");
+		System.out.println(out);
 	}
 }
