@@ -591,13 +591,14 @@ public class CLI implements Runnable {
 			dotCode = new ConfigToDot(new ConfigToDot.Builder(config)).convert();
 			if (filename.equals("-")) // write to stdout
 				System.out.println(dotCode);
-			else // write to file
+			else { // write to file
 				Files.writeString(Path.of(filename), dotCode);
-			String cmd = CommandLine.Help.Ansi.AUTO.string("@|white,bold dot -Tsvg " + filename + "|@");
-			System.out.println(
-				"Dot code has been written to " + filename
-					+ "\nRun " + cmd + " to obtain a nice svg image"
-			);
+				String cmd = CommandLine.Help.Ansi.AUTO.string("@|white,bold dot -Tsvg " + filename + "|@");
+				System.out.println(
+					"Dot code has been written to " + filename
+						+ "\nRun " + cmd + " to obtain a nice svg image"
+				);
+			}
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, "Couldn't save generated dot code into " + filename, e);
 			System.out.println("Generated dot code is:\n" + dotCode);
