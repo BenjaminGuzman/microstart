@@ -22,14 +22,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.management.InstanceAlreadyExistsException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -64,7 +58,7 @@ public class Group {
 	 * If count is 0, all services should have started
 	 */
 	@NotNull
-	private final CountDownLatch servicesLatch;
+	private CountDownLatch servicesLatch;
 
 	@NotNull
 	private final Map<ServiceStatus, BiConsumer<Service, ServiceStatus>> defaultServiceHooks = new HashMap<>();
@@ -107,8 +101,7 @@ public class Group {
 
 		// register service in singleton map
 		serviceGroups.put(config.getName(), this);
-		for (String alias : config.getAliases())
-			serviceGroups.put(alias, this);
+		config.getAliases().forEach(alias -> serviceGroups.put(alias, this));
 	}
 
 	/**
@@ -146,8 +139,15 @@ public class Group {
 	 *                                        been instantiated
 	 */
 	public void start() throws InstanceAlreadyExistsException {
-		if (this.isUp())
+		if (isUp())
 			return;
+		else { // is not up
+			// reset the latch (currently latch count should be 0)
+			servicesLatch = new CountDownLatch(config.getServicesConfigs().size());
+
+			// reset count down times
+			countDownTimes.keySet().forEach(k -> countDownTimes.put(k, 0));
+		}
 
 		for (GroupConfig groupConfig : config.getDependenciesConfigs()) {
 			Group dependency;
@@ -164,16 +164,15 @@ public class Group {
 			Service service;
 			if ((service = Service.forName(serviceConfig.getName())) == null)
 				service = new Service(serviceConfig, defaultServiceHooks, this::onException);
-			else // service has already been loaded, and probably is running
-				if (service.getStatus().isRunning()) {
-					CLI.printWarning(service.getConfig().getColorizedName() +
-						" has already started");
+			else if (service.getStatus().isRunning()) { // service has already been loaded, and is running
+				CLI.printWarning(service.getConfig().getColorizedName() +
+					" has already started");
 
-					// countdown the latch and don't submit the service to execution
-					// because it is already running
-					submit2Executor = false;
-					servicesLatch.countDown();
-				}
+				// countdown the latch and don't submit the service to execution
+				// because it is already running
+				submit2Executor = false;
+				servicesLatch.countDown();
+			}
 
 			if (submit2Executor)
 				executorService.submit(service);
@@ -188,11 +187,15 @@ public class Group {
 	}
 
 	/**
-	 * @return true if both {@link #servicesLatch} count is 0. It'll be 0 if all dependencies are up and all
-	 * services are up too
+	 * @return true if all the services in the group have running ({@link ServiceStatus#isRunning()}) status
 	 */
 	public boolean isUp() {
-		return servicesLatch.getCount() == 0;
+		return config.getServicesConfigs()
+			.stream()
+			.map(serviceConfig -> Service.forName(serviceConfig.getName()))
+			// if service is null, it hasn't been loaded probably
+			// it's not possible that it is null because name is not valid
+			.allMatch(service -> service != null && service.getStatus().isRunning());
 	}
 
 	/**
@@ -204,19 +207,27 @@ public class Group {
 	}
 
 	/**
-	 * Tries to stop all processes started by the services that were run and
-	 * <p>
-	 * Calls {@link ExecutorService#shutdownNow()} on the executor service used to run services inside this group
-	 *
-	 * @return same as {@link ExecutorService#shutdownNow()}
+	 * Tries to stop all processes started by the services that were run in this group
 	 */
-	public List<Runnable> shutdownNow() {
+	public void stop() {
 		for (ServiceConfig serviceConfig : config.getServicesConfigs()) {
 			Service service = Service.forName(serviceConfig.getName());
 			assert service != null;
 			service.stop();
 		}
-		return executorService.shutdownNow();
+	}
+
+	/**
+	 * Calls {@link #stop()} and then shuts down the underlying executor service
+	 * <p>
+	 * Use it only when the application is about to shut down
+	 * <p>
+	 * Once this method is called, any subsequent call to {@link #start()} may fail because executor service is
+	 * shut down and can't accept more tasks
+	 */
+	public void shutdownNow() {
+		stop();
+		executorService.shutdownNow();
 	}
 
 	/**
@@ -234,9 +245,7 @@ public class Group {
 		if (countDownTimes.getOrDefault(service, 0) > 0) {
 			LOGGER.info(
 				"Service " + service.getConfig().getColorizedName() +
-					" has again notified it has started. Ignoring that notification.\n" +
-					"Total times it has notified this (excluding this occasion): " +
-					countDownTimes.get(service)
+					" has again notified it has started " + countDownTimes.get(service) + " times"
 			);
 			countDownTimes.put(service, countDownTimes.get(service) + 1);
 			return;

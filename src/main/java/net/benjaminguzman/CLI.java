@@ -175,7 +175,14 @@ public class CLI implements Runnable {
 				return false;
 		}
 
-		Map<String, Consumer<String>> cmdsWithArg = new HashMap<>();
+		// store the keys in a tree map sorting the keys by its length (if equal, use lexicographical order)
+		// this way longer command names will be processed before shorter command names
+		// e.g. "stop group" will be processed before "stop"
+		Map<String, Consumer<String>> cmdsWithArg = new TreeMap<>((String a, String b) -> {
+			if (a.length() == b.length())
+				return a.compareTo(b);
+			return b.length() - a.length();
+		});
 
 		// group commands
 		cmdsWithArg.put("start group", this::startGroupByName);
@@ -206,7 +213,10 @@ public class CLI implements Runnable {
 
 		// Process a single command that requires an argument
 		// (or not, in which case the consumer should handle empty strings)
-		Optional<String> cmdNameOptional = cmdsWithArg.keySet().stream().filter(cmdLower::startsWith).findFirst();
+		Optional<String> cmdNameOptional = cmdsWithArg.keySet()
+			.stream()
+			.filter(cmdLower::startsWith)
+			.findFirst();
 		if (cmdNameOptional.isPresent()) { // means cmdNameOptional is actually a key of the map (therefore, valid)
 			String cmdName = cmdNameOptional.get();
 			String cmdArg = cmd.substring(cmdName.length()).stripLeading();
@@ -362,7 +372,7 @@ public class CLI implements Runnable {
 
 		// the group has been loaded
 		if (group.isUp()) // if the group is up, stop it
-			group.shutdownNow();
+			group.stop();
 		else
 			printWarning("Group \"" + groupName + "\" has been loaded but it is not running");
 	}
@@ -396,7 +406,7 @@ public class CLI implements Runnable {
 		if (dependenciesStr.isEmpty())
 			return;
 
-		System.out.println("Group \"" + groupName + "\" depends on groups " + dependenciesStr);
+		System.out.println("Group \"" + groupName + "\" depends on: " + dependenciesStr);
 		groupConfig.getDependenciesConfigs().forEach(g -> groupStatusByName(g.getName()));
 	}
 
