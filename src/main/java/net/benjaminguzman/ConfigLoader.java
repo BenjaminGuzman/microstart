@@ -368,7 +368,7 @@ public class ConfigLoader {
 			);
 		else
 			LOGGER.warning(
-				"⚠ Not configuring started patterns for " +
+				"Not configuring started patterns for " +
 					config.getColorizedName() +
 					" may result on the application hanging up indefinitely"
 			);
@@ -382,10 +382,9 @@ public class ConfigLoader {
 			);
 		else
 			LOGGER.warning(
-				"⚠ Not configuring error patterns for " +
+				"Not configuring error patterns for " +
 					config.getColorizedName() +
-					" may result on the application hanging up indefinitely if an error" +
-					" occurs"
+					" may result on the application hanging up indefinitely"
 			);
 
 		// show more warnings if optional prop value were defined for a required prop that was not defined

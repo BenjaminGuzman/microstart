@@ -220,7 +220,12 @@ public class CLI implements Runnable {
 		if (cmdNameOptional.isPresent()) { // means cmdNameOptional is actually a key of the map (therefore, valid)
 			String cmdName = cmdNameOptional.get();
 			String cmdArg = cmd.substring(cmdName.length()).stripLeading();
-			cmdsWithArg.get(cmdName).accept(cmdArg);
+			Consumer<String> cmdConsumer = cmdsWithArg.get(cmdName);
+
+			if (cmdArg.isBlank()) // process command that accepts empty argument
+				cmdConsumer.accept(cmdArg);
+			else // process each command argument
+				splitBySpaces(cmdArg).forEach(cmdConsumer);
 			return false;
 		}
 
@@ -447,12 +452,12 @@ public class CLI implements Runnable {
 			service = loadServiceByName(serviceName);
 			if (service == null) // service couldn't be successfully loaded
 				return;
-			System.out.println("Service " + service.getConfig().getColorizedName() + "successfully loaded");
+			System.out.println("Service " + service.getConfig().getColorizedName() + " successfully loaded");
 		}
 
 		// by now, the service has been loaded
 		if (service.getStatus().isRunning()) {
-			printWarning(
+			System.out.println(
 				"Service " + service.getConfig().getColorizedName() + " can't be run now." +
 					" Current status: " + service.getStatus()
 			);
@@ -630,19 +635,19 @@ public class CLI implements Runnable {
 			"""
 				@|white,bold Available commands:|@
 				  @|white,underline Group commands:|@
-				    • @|blue,bold group (start|stop)|@ | @|blue,bold (start|stop) group|@ @|cyan,underline <group name or alias>|@
+				    • @|blue,bold group (start|stop)|@ | @|blue,bold (start|stop) group|@ @|cyan,underline <group name or alias>|@ @|cyan ...|@
 				        Start or stop a group service.
-				    • @|blue,bold group status|@ | @|blue,bold status group|@ @|cyan,underline <group name or alias>|@
+				    • @|blue,bold group status|@ | @|blue,bold status group|@ @|cyan,underline <group name or alias>|@ @|cyan ...|@
 				        Show the status of a group service.
 				        Status will also be shown for group's dependencies
-							
+
 				  @|white,underline Singleton service commands:|@
-				    • @|blue,bold start|@ | @|blue,bold stop|@ @|cyan,underline <service name or alias>|@
+				    • @|blue,bold start|@ | @|blue,bold stop|@ @|cyan,underline <service name or alias>|@ @|cyan ...|@
 				        Start or stop a singleton service.
-				    • @|blue,bold status|@ @|cyan,underline [<service name or alias>]|@
+				    • @|blue,bold status|@ @|cyan,underline [<service name or alias>]|@ @|cyan ...|@
 				        Show the status of a service.
 				        If service name or alias is not provided, all services' status will be shown.
-							
+
 				  @|white,underline Configuration commands:|@
 				    • @|blue,bold load|@
 				        Load all services. Useful to validate config.
@@ -653,12 +658,14 @@ public class CLI implements Runnable {
 				        Convert configuration to dot (graphviz) code and write it to the specified file.
 				        If "-" is used as file, output will be printed to standard output.
 				        Useful to obtain an overview of the microservices dependency graph.
-							
+
 				  @|white,underline Miscellaneous commands:|@
 				    • @|blue,bold quit|@ | @|blue,bold exit|@ | @|blue,bold q|@
 				        Exit the application (all started processes will be stopped).
 				    • @|blue,bold help|@ | @|blue,bold h |@
 				        Print this help.
+
+				  If service name or alias contains a space, enclose it in double-quotes
 				"""
 		);
 		String extraInfo = String.format(
@@ -674,6 +681,68 @@ public class CLI implements Runnable {
 			cmdSeparator
 		);
 		System.out.println(promptStatuses + "\n" + availableCommands + "\n" + extraInfo);
+	}
+
+	/**
+	 * Split a string by space but not splitting if substring is double-quoted
+	 * <p>
+	 * Example:
+	 * 'hello world "hola mundo" ...' will be split into:
+	 * <ol>
+	 *         <li>hello</li>
+	 *         <li>world</li>
+	 *         <li>hola mundo</li>
+	 *         <li>...</li>
+	 * </ol>
+	 * @param str string to be split
+	 * @return list of tokens extracted
+	 */
+	@NotNull
+	public static List<String> splitBySpaces(String str) {
+		if (str.isBlank())
+			return Collections.emptyList();
+
+		List<String> tokens = new ArrayList<>();
+		int tokenStart = 0;
+		int tokenEnd = 0;
+		boolean insideQuotes = false; // tells if index i is inside double quotes
+		for (int i = 0; i < str.length(); ++i) { // O(n)
+			if (insideQuotes) {
+				tokenStart = i;
+
+				// advance i until we see the final '"'
+				// also ignore any escaped '"', i.e. \"
+				while (i < str.length() && (str.charAt(i) != '"' && str.charAt(i - 1) != '\\'))
+					++i;
+
+				if (i == str.length()) {
+					printError("Malformed string. Missing end double quote '\"'");
+					return Collections.emptyList();
+				}
+
+				tokenEnd = i;
+				insideQuotes = false;
+
+				tokens.add(str.substring(tokenStart, tokenEnd));
+				continue;
+			}
+
+			// outside quotes
+			switch (str.charAt(i)) {
+				case '"' -> insideQuotes = true;
+				case ' ' -> {
+					tokenEnd = i;
+					tokens.add(str.substring(tokenStart, tokenEnd));
+					tokenStart = tokenEnd + 1;
+				}
+			}
+		}
+
+		// add substring at the end
+		if (str.charAt(str.length() - 1) != '"') // if last token is double-quoted, then it is already in list
+			tokens.add(str.substring(tokenStart));
+
+		return tokens;
 	}
 
 	/**
