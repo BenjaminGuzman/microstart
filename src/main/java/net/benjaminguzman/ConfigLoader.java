@@ -370,7 +370,7 @@ public class ConfigLoader {
 			LOGGER.warning(
 				"Not configuring started patterns for " +
 					config.getColorizedName() +
-					" may result on the application hanging up indefinitely"
+					" may result on microstart hanging up indefinitely"
 			);
 
 		if (jsonConfig.has("errorPatterns"))
@@ -384,7 +384,7 @@ public class ConfigLoader {
 			LOGGER.warning(
 				"Not configuring error patterns for " +
 					config.getColorizedName() +
-					" may result on the application hanging up indefinitely"
+					" may result on microstart hanging up indefinitely"
 			);
 
 		// show more warnings if optional prop value were defined for a required prop that was not defined

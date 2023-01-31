@@ -211,7 +211,7 @@ public class Service implements Runnable {
 		// if provided, redirect file contents to stdin
 		if (config.getStdin() != null) {
 			startProcBuilder = startProcBuilder.redirectInput(config.getStdin());
-			LOGGER.info(config.getStdin().getAbsolutePath() + " will serve as stdin for " + config.getColorizedName());
+			LOGGER.config(config.getStdin().getAbsolutePath() + " will serve as stdin for " + config.getColorizedName());
 		}
 
 		try {
