@@ -635,7 +635,7 @@ public class CLI implements Runnable {
 			"""
 				@|white,bold Available commands:|@
 				  @|white,underline Group commands:|@
-				    • @|blue,bold group (start|stop)|@ | @|blue,bold (start|stop) group|@ @|cyan,underline <group name or alias>|@ @|cyan ...|@
+				    • @|blue,bold group|@ (@|blue,bold start|@ | @|blue,bold stop|@) | (@|blue,bold start|@ | @|blue,bold stop|@) @|blue,bold group|@ @|cyan,underline <group name or alias>|@ @|cyan ...|@
 				        Start or stop a group service.
 				    • @|blue,bold group status|@ | @|blue,bold status group|@ @|cyan,underline <group name or alias>|@ @|cyan ...|@
 				        Show the status of a group service.
