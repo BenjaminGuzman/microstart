@@ -226,6 +226,9 @@ public class Group {
 	 * shut down and can't accept more tasks
 	 */
 	public void shutdownNow() {
+		if (executorService.isShutdown())
+			return;
+
 		stop();
 		executorService.shutdownNow();
 	}
@@ -276,5 +279,13 @@ public class Group {
 				+ ". Service status: " + service.getStatus(),
 			e
 		);
+	}
+
+	@Override
+	public String toString() {
+		return "Group{" +
+			"config=" + config +
+			", countDownTimes=" + countDownTimes +
+			'}';
 	}
 }
