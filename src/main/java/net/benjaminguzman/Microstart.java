@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,7 +35,7 @@ import java.util.logging.Logger;
 @CommandLine.Command(
 	name = "microstart",
 	description = "Start processes groups with dependencies in a single command",
-	version = "microstart v1.1.2",
+	version = "microstart v1.2.0",
 	header = """
 		Copyright (c) 2021-2023. Benjamín Antonio Velasco Guzmán
 		This program comes with ABSOLUTELY NO WARRANTY.
@@ -160,9 +161,19 @@ public class Microstart implements Runnable {
 			// it seems the JVM successfully handles child process destruction when SIGINT is received
 			// so let's hope it is true for any architecture and 🤞 there are no dangling process after
 			// exit
-			Group.getGroups().stream()
+
+			// stop groups from bottom up (first stop the ones that don't have dependencies)
+			// to do so, we use level order traversal
+			Group.getGroups()
+				.stream()
+				.map(this::levelOrderTraversal)
+				//.peek(System.out::println) // check traversal is indeed working
+				.flatMap(Collection::stream)
+				.flatMap(Collection::stream)
+				.distinct()
+				//.peek(g -> System.out.println(g.getConfig().getName())) // check traversal is indeed working
 				.peek(Group::shutdownNow)
-				.forEach(group -> {
+				.forEachOrdered(group -> {
 					try {
 						group.awaitTermination(5, TimeUnit.SECONDS);
 					} catch (InterruptedException e) {
@@ -175,6 +186,43 @@ public class Microstart implements Runnable {
 				});
 			Service.getServices().forEach(Service::stop);
 		}
+	}
+
+	/**
+	 * @see #levelOrderTraversal(Group, List, int)
+	 */
+	private List<List<Group>> levelOrderTraversal(@NotNull Group group) {
+		List<List<Group>> out = new ArrayList<>();
+		levelOrderTraversal(group, out, 0);
+		return out;
+	}
+
+	/**
+	 * Perform level order traversal on the given group
+	 *
+	 * @param group group (root node)
+	 * @param levels list of lists. first list corresponds to groups at level 0,
+	 *                      second list corresponds to groups at level 1, and so on...
+	 *                      It may be possible that lists contain duplicated groups since a group (node) can have
+	 *                      more than 2 parents.
+	 *                      If this list is flattened, you'd get an ordered list level-ordered
+	 * @param level current level. 0 is the first level
+	 */
+	private void levelOrderTraversal(@NotNull Group group, @NotNull List<List<Group>> levels, int level) {
+		// if we're at a new level, grow the array
+		if (level == levels.size())
+			levels.add(new ArrayList<>());
+
+		// add the group to its corresponding level
+		levels.get(level).add(group);
+
+		// add the group's children
+		group.getConfig()
+			.getDependenciesConfigs()
+			.stream()
+			.map(config -> Group.forName(config.getName()))
+			.filter(Objects::nonNull)
+			.forEach(dependency -> levelOrderTraversal(dependency, levels, level + 1));
 	}
 
 	/**

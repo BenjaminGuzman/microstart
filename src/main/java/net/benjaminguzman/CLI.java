@@ -157,22 +157,24 @@ public class CLI implements Runnable {
 		String cmdLower = cmd.toLowerCase();
 
 		switch (cmdLower) {
-			case "q":
-			case "exit":
-			case "quit":
+			case "q", "exit", "quit" -> {
 				return true;
-			case "h":
-			case "help":
+			}
+			case "h", "help" -> {
 				printHelp();
 				return false;
-			case "reload":
+			}
+			case "reload" -> {
 				reload();
 				return false;
-			case "load":
+			}
+			case "load" -> {
 				loadAllServices();
 				return false;
-			case "":
+			}
+			case "" -> {
 				return false;
+			}
 		}
 
 		// store the keys in a tree map sorting the keys by its length (if equal, use lexicographical order)
@@ -637,6 +639,7 @@ public class CLI implements Runnable {
 				  @|white,underline Group commands:|@
 				    • @|blue,bold group|@ (@|blue,bold start|@ | @|blue,bold stop|@) | (@|blue,bold start|@ | @|blue,bold stop|@) @|blue,bold group|@ @|cyan,underline <group name or alias>|@ @|cyan ...|@
 				        Start or stop a group service.
+				        Group's dependencies will be started and stopped first.
 				    • @|blue,bold group status|@ | @|blue,bold status group|@ @|cyan,underline <group name or alias>|@ @|cyan ...|@
 				        Show the status of a group service.
 				        Status will also be shown for group's dependencies
