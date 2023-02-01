@@ -1,0 +1,47 @@
+services:
+  - name: Service 1
+    start: 'echo -e "Testing config loader...\nIt works!"'
+
+  - name: Service 2
+    start: 'echo -e "Testing config loader 2...\nIt works!"'
+
+  - name: Mirror
+    start: "python src/test/resources/mirror.py"
+
+groups:
+  - name: Deepest 1
+    services:
+      - Service 1
+    dependencies:
+      - Deeper 1
+      - Deeper 2
+
+  - name: Deeper 2
+    services:
+      - Service 2
+    dependencies:
+      - Deep 1
+
+  - name: Deeper 1
+    services:
+      - Service 1
+    dependencies:
+      - Deep 1
+      - Root 2
+
+  - name: Deep 1
+    services:
+      - Service 1
+      - Service 2
+    dependencies:
+      - Root 1
+
+  - name: Root 1
+    services:
+      - Mirror
+
+  - name: Root 2
+    services:
+      - Mirror
+
+maxDepth: 4
