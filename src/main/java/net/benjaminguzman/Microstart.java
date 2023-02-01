@@ -20,6 +20,7 @@ package net.benjaminguzman;
 
 import org.everit.json.schema.ValidationException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.TestOnly;
 import picocli.CommandLine;
 
 import javax.management.InstanceAlreadyExistsException;
@@ -31,11 +32,13 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @CommandLine.Command(
 	name = "microstart",
 	description = "Start processes groups with dependencies in a single command",
-	version = "microstart v1.2.0",
+	version = "microstart v1.2.1",
 	header = """
 		Copyright (c) 2021-2023. Benjamín Antonio Velasco Guzmán
 		This program comes with ABSOLUTELY NO WARRANTY.
@@ -82,7 +85,7 @@ public class Microstart implements Runnable {
 	public static boolean IGNORE_ERRORS;
 
 	public static void main(String... args) {
-		System.setProperty("java.util.logging.SimpleFormatter.format", "[%4$-7s] [%1$tF %1$tT] %5$s %n");
+		System.setProperty("java.util.logging.SimpleFormatter.format", "[%4$-7s] [%1$tF %1$tT] %5$s%6$s%n");
 
 		// when jvm is shutting down, kill all its children processes.
 		// Recall this processes will be the ones started by running groups or singleton services.
@@ -162,18 +165,18 @@ public class Microstart implements Runnable {
 			// so let's hope it is true for any architecture and 🤞 there are no dangling process after
 			// exit
 
-			// stop groups from bottom up (first stop the ones that don't have dependencies)
+			// stop groups from top to bottom (first stop the ones that don't have dependants,
+			// i.e., the ones at the nethermost levels (or the start of the list))
 			// to do so, we use level order traversal
-			Group.getGroups()
+			Group.getRoots()
 				.stream()
-				.map(this::levelOrderTraversal)
+				.map(Microstart::levelOrderTraversal)
 				//.peek(System.out::println) // check traversal is indeed working
 				.flatMap(Collection::stream)
 				.flatMap(Collection::stream)
 				.distinct()
-				//.peek(g -> System.out.println(g.getConfig().getName())) // check traversal is indeed working
-				.peek(Group::shutdownNow)
-				.forEachOrdered(group -> {
+				.forEach(group -> {
+					group.shutdownNow();
 					try {
 						group.awaitTermination(5, TimeUnit.SECONDS);
 					} catch (InterruptedException e) {
@@ -184,6 +187,7 @@ public class Microstart implements Runnable {
 						);
 					}
 				});
+
 			Service.getServices().forEach(Service::stop);
 		}
 	}
@@ -191,10 +195,16 @@ public class Microstart implements Runnable {
 	/**
 	 * @see #levelOrderTraversal(Group, List, int)
 	 */
-	private List<List<Group>> levelOrderTraversal(@NotNull Group group) {
-		List<List<Group>> out = new ArrayList<>();
-		levelOrderTraversal(group, out, 0);
-		return out;
+	public static List<List<Group>> levelOrderTraversal(@NotNull Group group) {
+		List<List<Group>> levels = new ArrayList<>();
+		levelOrderTraversal(group, levels, 0);
+
+		// levels may contain duplicates
+		return levels.stream()
+			.map(Collection::stream)
+			.map(Stream::distinct)
+			.map(Stream::toList)
+			.toList();
 	}
 
 	/**
@@ -208,7 +218,7 @@ public class Microstart implements Runnable {
 	 *                      If this list is flattened, you'd get an ordered list level-ordered
 	 * @param level current level. 0 is the first level
 	 */
-	private void levelOrderTraversal(@NotNull Group group, @NotNull List<List<Group>> levels, int level) {
+	private static void levelOrderTraversal(@NotNull Group group, @NotNull List<List<Group>> levels, int level) {
 		// if we're at a new level, grow the array
 		if (level == levels.size())
 			levels.add(new ArrayList<>());
@@ -217,10 +227,8 @@ public class Microstart implements Runnable {
 		levels.get(level).add(group);
 
 		// add the group's children
-		group.getConfig()
-			.getDependenciesConfigs()
+		group.getDependants()
 			.stream()
-			.map(config -> Group.forName(config.getName()))
 			.filter(Objects::nonNull)
 			.forEach(dependency -> levelOrderTraversal(dependency, levels, level + 1));
 	}
