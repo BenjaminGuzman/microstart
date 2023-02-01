@@ -130,6 +130,30 @@ public class Group {
 	}
 
 	/**
+	 * @return list of loaded service groups that have no dependencies
+	 */
+	public static List<Group> getRoots() {
+		return getGroups().stream()
+			.filter(group -> group.getConfig().getDependenciesConfigs().isEmpty())
+			.toList();
+	}
+
+	/**
+	 * @return list of groups that depend on this group
+	 */
+	public List<Group> getDependants() {
+		// TODO do we really need to compute this on-the-fly?
+		//  For now this is ok, although caching (and cache invalidation) should be considered
+		return getGroups().stream()
+			.filter(group -> group.getConfig()
+				.getDependenciesConfigs()
+				.stream()
+				.map(GroupConfig::getName)
+				.anyMatch(groupName -> groupName.equals(this.config.getName()))
+			).toList();
+	}
+
+	/**
 	 * Starts a service group.
 	 * <p>
 	 * This will manage the execution of group services and singleton services with threads, so you don't have to

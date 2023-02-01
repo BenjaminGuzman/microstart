@@ -118,16 +118,22 @@ public class ConfigToDot {
 			.append(System.lineSeparator());
 
 		// add group's services
-		groupConfig.getServicesConfigs().forEach(serviceConfig -> builder.append(indentStr2)
-			.append('"')
-			.append(serviceConfig.getName()).append(group_hash_code)
-			.append("\"")
-			.append(" [label=<")
-			.append(serviceConfig.getName())
-			.append("<br/><font point-size=\"10\">")
-			.append(String.join(", ", serviceConfig.getAliases()))
-			.append("</font>>];")
-			.append(System.lineSeparator())
+		groupConfig.getServicesConfigs().forEach(serviceConfig -> {
+			builder.append(indentStr2)
+				.append('"')
+				.append(serviceConfig.getName()).append(group_hash_code)
+				.append("\"")
+				.append(" [label=<")
+				.append(serviceConfig.getName());
+
+			if (serviceConfig.getAliases().size() > 0)
+				builder.append("<br/><font point-size=\"10\">")
+					.append(String.join(", ", serviceConfig.getAliases()))
+					.append("</font>");
+
+			builder.append(">, style=filled];")
+				.append(System.lineSeparator());
+			}
 		);
 
 		// close the subgraph

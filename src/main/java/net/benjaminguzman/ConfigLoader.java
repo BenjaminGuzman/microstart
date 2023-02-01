@@ -494,7 +494,7 @@ public class ConfigLoader {
 		@NotNull JSONArray groupsArray,
 		int max_depth
 	) throws CircularDependencyException, GroupNotFoundException, MaxDepthExceededException {
-		Map<String, Boolean> visitedNodes = new HashMap<>(); // contains the names of the visited nodes
+		//Map<String, Boolean> visitedNodes = new HashMap<>(); // contains the names of the visited nodes
 
 		// use a stack to traverse the graph using DFS
 		Stack<String> pendingNodes = new Stack<>(); // contains the names of the unvisited nodes
@@ -502,19 +502,23 @@ public class ConfigLoader {
 		pendingNodes.push(rootGroupName);
 
 		int depth = 0;
+		int rootGroupNameOccurrences = 0;
 
 		// traverse the graph to detect cycles
 		while (!pendingNodes.isEmpty()) {
 			String current = pendingNodes.pop();
 
+			if (current.equalsIgnoreCase(rootGroupName))
+				++rootGroupNameOccurrences;
+
 			// if current node has been visited, a cycle has been found
-			if (visitedNodes.containsKey(current))
+			if (rootGroupNameOccurrences >= 2)
 				throw new CircularDependencyException(
 					"Group \"" + rootGroupName
 						+ "\" depends on itself (circular dependency was found)"
 				);
 
-			visitedNodes.put(current, true); // mark the current node as visited
+			//visitedNodes.put(current, true); // mark the current node as visited
 
 			// obtain dependencies for current group
 			JSONObject groupConfig = getItemByNameOrAlias(current, groupsArray);
