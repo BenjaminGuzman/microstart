@@ -481,7 +481,7 @@ public class CLI implements Runnable {
 			return;
 		}
 
-		if (service.getStatus() == ServiceStatus.STARTED) {
+		if (service.getStatus().ordinal() < ServiceStatus.STOPPING.ordinal()) {
 			service.stop();
 			return;
 		}
