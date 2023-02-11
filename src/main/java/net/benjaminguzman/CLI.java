@@ -233,14 +233,12 @@ public class CLI implements Runnable {
 
 		System.out.println("Forwarding command \"" + cmd + "\" to OS...");
 		try {
-			// this is the same code used by OpenJDK implementation for Runtime.exec(String)
-			StringTokenizer st = new StringTokenizer(cmd);
-			String[] cmdarray = new String[st.countTokens()];
-			for (int i = 0; st.hasMoreTokens(); i++)
-				cmdarray[i] = st.nextToken();
-
 			new ProcessBuilder()
-				.command(cmdarray)
+				.command(
+					Microstart.IS_WINDOWS ? "cmd" : "sh",
+					Microstart.IS_WINDOWS ? "/c" : "-c",
+					cmd
+				)
 				.inheritIO()
 				.start()
 				.waitFor();
