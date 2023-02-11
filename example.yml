@@ -25,7 +25,7 @@ services:
   - name: Crypto
     aliases:
       - crypto
-    start: echo "..." && sleep 1 && echo "Done."
+    start: echo "Compiling..." && sleep 1 && echo "Done."
     color: 0x0000ff
     startedPatterns:
       - done
@@ -35,7 +35,7 @@ services:
   - name: Landing page
     aliases:
       - landing
-    start: sleep 5 && echo "Compilation finished."
+    start: echo "Starting compilation" && sleep 5 && echo "Compilation finished."
     color: 0xf0f0f0
     startedPatterns:
       - Compilation finished

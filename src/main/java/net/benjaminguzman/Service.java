@@ -318,7 +318,7 @@ public class Service implements Runnable {
 			exitMessage += " because thread was interrupted";
 		else
 			exitMessage += " with status code " + exit_code + " " +
-				(exit_code == 143 ? "(SIGTERM)" : (exit_code == 0 ? "(Good)" : "(Bad?)"));
+				(exit_code == 143 ? "(SIGTERM)" : (exit_code == 0 ? "(Good 👍)" : "(Bad 🥴?)"));
 
 		System.out.println(exitMessage);
 	}

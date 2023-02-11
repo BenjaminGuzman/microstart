@@ -53,7 +53,7 @@ public class Microstart implements Runnable {
 	public static final boolean IS_WINDOWS = System.getProperty("os.name").contains("win");
 
 	@CommandLine.Option(
-		names = {"-c", "--config"},
+		names = {"-c", "--config", "-f"},
 		description = "Path to the configuration file",
 		defaultValue = "microstart.yml"
 	)
