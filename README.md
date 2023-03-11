@@ -6,11 +6,14 @@ It improves developer experience because **you'll no longer need to open multipl
 It is similar to docker compose, but these are the main differences:
 
 - Doesn't need docker installed. Any command you run from command line can be run by this program
-- It supports process groups and dependencies (see below)
+- It supports process groups and dependencies<sup>1</sup> (see below) 
 - Can generate [dot code](https://graphviz.org/doc/info/lang.html) based on configuration
 
 **It is intended to be used in development environment preferably**, since in production you have more pro stuff like
 kubernetes.
+
+<sup>1</sup> docker compose also supports dependencies with [`depends_on`](https://docs.docker.com/compose/compose-file/#depends_on),
+but that works slightly different.
 
 ## Feature overview
 
