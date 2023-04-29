@@ -33,8 +33,8 @@ import java.util.Objects;
 class GroupTest {
 	@BeforeAll
 	static void beforeAll() throws IOException, InstanceAlreadyExistsException {
-		if (ConfigLoader.getInstance() == null)
-			new ConfigLoader("src/test/resources/test.json");
+		ConfigLoader.deleteInstance();
+		new ConfigLoader("src/test/resources/test.json");
 	}
 
 	@Test

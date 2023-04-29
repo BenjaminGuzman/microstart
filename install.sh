@@ -2,13 +2,22 @@
 
 echo "Installing microstart..."
 
-if ! compgen -G "target/microstart*with-dependencies.jar" > /dev/null; then
-	echo -e "\tJar doesn't exist. Building it now..."
-	mvn clean package
-fi
+function select_jar() {
+    available_jars=(target/microstart*with-dependencies.jar)
+    jar="${available_jars[0]}"
+    if [[ -f "$jar" ]]; then
+      echo "$jar"
+    else
+      echo "nil"
+    fi
+}
 
-jar=(target/microstart*with-dependencies.jar)
-jar="${jar[0]}"
+jar=$(select_jar)
+if [[ "$jar" == "nil" ]]; then
+  echo -e "\tJar doesn't exist. Building it now..."
+  mvn clean package
+  jar=$(select_jar)
+fi
 
 # TODO: let the user decide installation directory
 # TODO: let the user decide if copying whole jar or simply creating a symlink
@@ -28,6 +37,6 @@ chmod u+x "$INSTALLATION_DIR/microstart"	# Grant execute privileges on bash scri
 
 # replace INSTALLATION_DIR variable from the microstart bash script with the actual value from this script
 # | as separator is needed because $INSTALLATION_DIR could potentially contain forward slashes (/)
-sed -i "s|INSTALLATION_DIR=\".*\"|INSTALLATION_DIR=\"$INSTALLATION_DIR\"|" "$INSTALLATION_DIR/microstart"
+sed -i '' "s|INSTALLATION_DIR=\".*\"|INSTALLATION_DIR=\"$INSTALLATION_DIR\"|" "$INSTALLATION_DIR/microstart"
 
 echo "Done."
