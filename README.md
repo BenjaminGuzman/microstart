@@ -6,32 +6,33 @@ It improves developer experience because **you'll no longer need to open multipl
 It is similar to docker compose, but these are the main differences:
 
 - Doesn't need docker installed. Any command you run from command line can be run by this program
-- It supports process groups and dependencies<sup>1</sup> (see below) 
-- Can generate [dot code](https://graphviz.org/doc/info/lang.html) based on configuration
+- It supports process groups and dependencies<sup>1</sup>
+- Can generate [graphviz code](https://graphviz.org/doc/info/lang.html) based on the configuration file
 
 **It is intended to be used in development environment preferably**, since in production you have more pro stuff like
 kubernetes.
 
-<sup>1</sup> docker compose also supports dependencies with [`depends_on`](https://docs.docker.com/compose/compose-file/#depends_on),
-but that works slightly different.
+<sup>1</sup> docker compose also supports dependencies via 
+[`depends_on`](https://docs.docker.com/compose/compose-file/#depends_on), but that works slightly different.
 
 ## Feature overview
 
 - Start **group processes** defined in configuration
 - Configure dependencies in order to **start a process after** another has notified **successful startup**
 - Start **single processes** defined in configuration
-- Generate [**dot code**](https://graphviz.org/doc/info/lang.html) from configuration to get an overview of the
-  dependency graph between microservices for your application
+- Generate [**graphviz code**](https://graphviz.org/doc/info/lang.html) from configuration to get an overview of the
+  dependency graph between your application microservices (or processes)
 
 Here is a small demonstration
 
 ![Example](./microstart-example.gif)
 
-Notice how _Search engine_ service is run before anything else, then both _users_ and _crypto_ services run
-concurrently, and, after both have notified successful startup, _Landing page_ is started.
-
 Configuration file used in GIF is [example.json](./example.json) or [example.yml](./example.yml).
+
 [schema.json](src/main/resources/schema.json) contains all configurable properties.
+
+Notice that _Search engine_ service is run before anything else, then both _users_ and _crypto_ services run
+concurrently, and, after both have notified successful startup, _Landing page_ is started.
 
 Generated dependency graph image:
 
@@ -53,8 +54,7 @@ Then, we can define 4 groups:
 4. Frontend (WebApp, AndroidApp, IOSApp)
 
 Group 4 depends on group 3, which in turn depends on group 2, which in turn depends on group 1.
-
-You can write a YAML or JSON file containing the following configuration
+And it can be described with the following YAML configuration (JSON can be used too):
 
 ```yaml
 services: [ ]
@@ -104,18 +104,17 @@ ignoreErrrors: true
 
 As you can see, each group has:
 
-- `name`: **required**. Name of the group. Can be used to start the service group.
-- `aliases`: Aliases for the name. Can be used to start the service group.
+- `name`: **required**. Name of the group. Can be used to start/stop the service group.
+- `aliases`: Aliases for the name. Can be used to start/stop the service group.
 - `services`: **required**. List of services that should run with this group. **references services defined in
   the `services` array** (see below).
 - `dependencies`: List of groups that should be started before this group is started. 
-  The group will not start<sup>1</sup> unless its dependencies have been run and successfully 
-  notified they have started
+  The group will not start<sup>1</sup> unless its dependencies have successfully notified they have started
 
 <sup>1</sup> You can modify this behaviour with the `ignoreErrors` key.
 
-It is allowed to have a group and a service with the same name or aliases, but not 2 groups or 2 services with the
-same name or aliases
+It is allowed to have a group and a service with the same name or alias, but not 2 groups or 2 services with the
+same name or alias
 
 ### Process
 
@@ -132,7 +131,7 @@ services:
     color: 0xff0000
     workDir: super-project/frontend/web
     startedPatterns:
-      - '(service|server) is listening on http(s)://'
+      - '(service|server) is listening on https?://'
     errorPatterns:
       - Error (happened|occurred|in)
     stdin: web-app-stdin.txt
@@ -227,9 +226,9 @@ For a full and detailed list of configurable properties of a service please see
 **patterns** (`startedPatterns` and `errorPatterns`) **are case-insensitive**, and please note these patterns are
 regular expressions (so, `inactive (dead)` is NOT the same as `inactive \(dead\)`)
 
-**Once processes are started it is recommended to manage them inside microstart**, i.e. don't manage processes externally 
-(don't send signals manually with kill command or so) because you may end up with orphan processes.
-A concrete example of this is when you use `npm start` as the start command. Killing the npm process doesn't kill the 
+**Once processes have started it is recommended to manage them inside microstart**. Don't manage processes externally
+(e.g. manually sending signals with `kill` command), because you may end up with orphan processes.
+A concrete example of this is when you use `npm start` as the start command. Killing the npm process may not kill the 
 nodejs process!
 
 ## YAML/JSON config properties

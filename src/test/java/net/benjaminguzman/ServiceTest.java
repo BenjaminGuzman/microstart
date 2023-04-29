@@ -217,7 +217,7 @@ class ServiceTest {
 					Pattern.compile("World!", Pattern.CASE_INSENSITIVE)
 				))
 				.setStdin(new File("src/test/resources/mirror.stdin"))
-				.setStartCmd("python src/test/resources/mirror.py"),
+				.setStartCmd("python3 src/test/resources/mirror.py"),
 			hooks,
 			(s, e) -> fail(),
 			queue
@@ -229,9 +229,9 @@ class ServiceTest {
 		for (ServiceStatus status : expectedStatuses)
 			assertEquals(status, queue.take());
 
-		t.join();
+		t.join(); // wait for service to end
 
-		assertTrue(queue.isEmpty());
+		assertTrue(queue.isEmpty()); // verify that no more statuses were added to the queue
 
 		assertNotNull(Service.forName(serviceName)); // check the service was added to singleton map
 	}
