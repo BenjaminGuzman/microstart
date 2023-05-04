@@ -50,7 +50,7 @@ import java.util.stream.Stream;
 )
 public class Microstart implements Runnable {
 	public static final Logger LOGGER = Logger.getLogger(Microstart.class.getName());
-	public static final boolean IS_WINDOWS = System.getProperty("os.name").contains("win");
+	public static final boolean IS_WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
 
 	@CommandLine.Option(
 		names = {"-c", "--config", "-f"},
