@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 @CommandLine.Command(
 	name = "microstart",
 	description = "Start processes groups with dependencies in a single command",
-	version = "microstart v1.2.1",
+	version = "microstart v1.2.2",
 	header = """
 		Copyright (c) 2021-2023. Benjamín Antonio Velasco Guzmán
 		This program comes with ABSOLUTELY NO WARRANTY.
