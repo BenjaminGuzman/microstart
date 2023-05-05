@@ -259,5 +259,9 @@ public class Microstart implements Runnable {
 		// should destroyForcibly() be used? let's hope the user knows what he/she is doing and there is no
 		// need to use destroyForcibly() which will send SIGKILL or something similar to the process,
 		// which is no good because process won't clean resources or handle shutdown hooks
+
+		// update: sometimes in windows that is required 😤😡
+		if (Microstart.IS_WINDOWS)
+			parentProc.destroyForcibly();
 	}
 }
